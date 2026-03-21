@@ -2,11 +2,12 @@
 
 ## 1. Install
 
-Typical local setup:
+### Option A: Direct install
 
 ```bash
+git clone <repo-url>
+cd dorado
 npm install
-npm run build
 npm install -g .
 ```
 
@@ -14,6 +15,13 @@ Then verify the CLI:
 
 ```bash
 dorado --help
+```
+
+### Option B: Install from a packed tarball
+
+```bash
+npm pack
+npm install -g dorado-cli-0.2.0.tgz
 ```
 
 ## 2. Inspect a Directory
@@ -121,3 +129,7 @@ Before publishing or handing off a release, at minimum run:
 npm pack --dry-run
 dorado skill status
 ```
+
+## 9. Modes
+
+See [Modes Guide](modes.md) for project mode and repository state definitions.

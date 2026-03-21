@@ -18,7 +18,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc && node scripts/copy-dashboard-assets.js",
+    "build": "node -e \"console.log('This repository ships prebuilt dist assets; no local build step is required.')\"",
     "dev": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest --run",

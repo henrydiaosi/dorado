@@ -39,19 +39,15 @@ Dorado 是一套面向 AI 协同开发的 GUI 优先工作流 CLI。它的目标
 - `SKILL.md`
 - `skill.yaml`
 
-## 仓库内容
-
-当前 `dorado` 发布仓库保留的是可运行和可交付内容：
-
-- `dist/`：CLI 与 Dashboard 运行代码
-- `assets/`：初始化项目时复制到目标项目的规范资产
-- `.dorado/templates/`：Git hooks 与模板资源
-- `agents/`、`SKILL.md`、`skill.yaml`：Codex skill 安装元数据
-- `docs/`：中英文项目说明与使用教程
-
 ## 当前推荐姿势
 
 - 新项目优先从 GUI 进入
 - CLI 用于检查、补充和自动化
 - 项目规划先于代码实现
 - 变更执行必须落在 change 文件上
+
+## 相关文档
+
+- [使用指南](usage-guide.md)
+- [模式说明](modes.md)
+- [AI 提示词教程](ai-prompt-guide.md)

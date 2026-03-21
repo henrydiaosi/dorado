@@ -39,19 +39,15 @@ Dorado is a GUI-first workflow CLI for AI-assisted software delivery. It is desi
 - `SKILL.md`
 - `skill.yaml`
 
-## Repository Contents
-
-This publish-oriented `dorado` repository keeps the runtime and onboarding assets:
-
-- `dist/` for CLI and dashboard runtime code
-- `assets/` for copied project conventions and AI guides
-- `.dorado/templates/` for packaged template resources and hooks
-- `agents/`, `SKILL.md`, and `skill.yaml` for Codex skill metadata
-- `docs/` for bilingual project and usage documentation
-
 ## Recommended Product Posture
 
 - Start new projects from the GUI
 - Use CLI for inspection, validation, and automation
 - Finish planning before implementation
 - Drive work from explicit change files
+
+## Related Docs
+
+- [Usage Guide](usage-guide.md)
+- [Modes Guide](modes.md)
+- [AI Prompt Guide](ai-prompt-guide.md)

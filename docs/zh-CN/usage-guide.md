@@ -1,12 +1,13 @@
-# Dorado 使用教程
+# Dorado 使用指南
 
 ## 1. 安装
 
-本地开发或发布前常用命令：
+### 方式 A：直接安装
 
 ```bash
+git clone <repo-url>
+cd dorado
 npm install
-npm run build
 npm install -g .
 ```
 
@@ -14,6 +15,13 @@ npm install -g .
 
 ```bash
 dorado --help
+```
+
+### 方式 B：从打包文件安装
+
+```bash
+npm pack
+npm install -g dorado-cli-0.2.0.tgz
 ```
 
 ## 2. 检查项目
@@ -121,3 +129,9 @@ dorado dashboard start C:/work/existing-project
 npm pack --dry-run
 dorado skill status
 ```
+
+## 9. 模式说明入口
+
+模式相关说明见：
+
+- [模式说明](modes.md)
