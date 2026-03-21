@@ -1,0 +1,64 @@
+{
+  "name": "dorado-cli",
+  "version": "0.2.0",
+  "description": "CLI tool for enforcing dorado workflow",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "dorado": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "assets",
+    ".dorado/templates",
+    "agents",
+    "SKILL.md",
+    "skill.yaml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/copy-dashboard-assets.js",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest --run",
+    "lint": "eslint src tests --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "index:rebuild": "node dist/tools/build-index.js",
+    "validate": "node dist/cli/commands/validate.js",
+    "release:smoke": "node scripts/release-smoke.js"
+  },
+  "keywords": [
+    "dorado",
+    "workflow",
+    "cli",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "fs-extra": "^11.2.0",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.0",
+    "open": "^9.1.0"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.19.37",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}

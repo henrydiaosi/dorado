@@ -1,0 +1,1 @@
+{"version":3,"file":"cliArgs.d.ts","sourceRoot":"","sources":["../../src/utils/cliArgs.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,mBAAmB;IAClC,MAAM,EAAE,MAAM,CAAC;IACf,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,QAAQ,EAAE,OAAO,CAAC;CACnB;AAID,wBAAgB,kBAAkB,CAAC,IAAI,EAAE,MAAM,EAAE,GAAG,mBAAmB,CAmDtE;AAED,wBAAgB,oBAAoB,IAAI,MAAM,CAQ7C"}

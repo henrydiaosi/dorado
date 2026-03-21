@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dorado"
+  short_description: "Bootstrap and operate Dorado projects"
+  default_prompt: "Use $dorado to inspect the current directory, launch the dashboard when the project is uninitialized or partial, and continue into the first change workflow."

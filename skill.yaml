@@ -1,0 +1,112 @@
+name: dorado
+title: Dorado
+description: GUI-first Dorado bootstrap and execution skill for Codex and similar AI tools.
+version: 3.0.0
+author: Dorado Team
+license: MIT
+
+interface:
+  display_name: "Dorado"
+  short_description: "Bootstrap and operate Dorado projects"
+  default_prompt: "Use $dorado to inspect the current directory, launch the dashboard when the project is uninitialized or partial, and continue into the first change workflow."
+
+requires_local:
+  node: ">=18.0.0"
+  npm: ">=8.0.0"
+
+protocol:
+  project_files:
+    - ".skillrc"
+    - "SKILL.md"
+    - "SKILL.index.json"
+    - "for-ai/ai-guide.md"
+    - "for-ai/execution-protocol.md"
+  feature_files:
+    - "changes/active/<feature>/proposal.md"
+    - "changes/active/<feature>/tasks.md"
+    - "changes/active/<feature>/state.json"
+    - "changes/active/<feature>/verification.md"
+  feature_name_format: "kebab-case"
+
+commands:
+  - id: dashboard_start
+    command: "dorado dashboard start [path] [--port <port>] [--no-open]"
+    purpose: "Preferred GUI-first entry for new, partial, or no-active-change projects."
+  - id: init
+    command: "dorado init [root-dir]"
+    purpose: "Initialize a Dorado project from CLI when GUI bootstrap is not preferred."
+  - id: new
+    command: "dorado new <feature-name> [root-dir]"
+    purpose: "Create a new change under changes/active with proposal/tasks/state/verification/review."
+  - id: status
+    command: "dorado status [project-dir]"
+    purpose: "Show project knowledge, execution status, and the recommended next step."
+  - id: docs_status
+    command: "dorado docs status [project-dir]"
+    purpose: "Show project-doc coverage and missing knowledge docs."
+  - id: skills_status
+    command: "dorado skills status [project-dir]"
+    purpose: "Show layered SKILL coverage, module skills, and index status."
+  - id: index_check
+    command: "dorado index check [project-dir]"
+    purpose: "Show whether the skill index exists, is stale, or needs rebuild."
+  - id: index_build
+    command: "dorado index build [project-dir]"
+    purpose: "Rebuild the project skill index."
+  - id: skill_status
+    command: "dorado skill status"
+    purpose: "Check whether the Codex-installed dorado skill is present and in sync."
+  - id: skill_install
+    command: "dorado skill install"
+    purpose: "Install or sync the dorado skill into ~/.codex/skills/dorado."
+  - id: progress
+    command: "dorado progress [changes/active/<feature>]"
+    purpose: "Show progress for a single active feature."
+  - id: verify
+    command: "dorado verify [changes/active/<feature>]"
+    purpose: "Check protocol completeness and optional-step coverage."
+  - id: archive
+    command: "dorado archive [changes/active/<feature>]"
+    purpose: "Check archive readiness against workflow gates."
+  - id: workflow_show
+    command: "dorado workflow show"
+    purpose: "Show workflow configuration for the current project."
+  - id: workflow_flags
+    command: "dorado workflow list-flags"
+    purpose: "List supported workflow feature flags."
+
+workflow:
+  read_order:
+    - ".skillrc"
+    - "changes/active/<feature>/proposal.md"
+    - "changes/active/<feature>/tasks.md"
+    - "changes/active/<feature>/state.json"
+    - "changes/active/<feature>/verification.md"
+  archive_requirements:
+    - "state.json.status must be ready_to_archive"
+    - "verification.md must be fully passed"
+    - "activated optional steps must appear in tasks.md and verification.md"
+    - "activated optional steps must be listed in verification.md.passed_optional_steps"
+  preferred_entry:
+    - "Run dorado status [path] first for a quick textual summary."
+    - "Run dorado dashboard start [path] when the directory is uninitialized, partially initialized, or has no active change."
+    - "Use the GUI bootstrap for new-project planning from natural-language requirements."
+
+dashboard:
+  start_command: "dorado dashboard start [path] [--port <port>] [--no-open]"
+  health_endpoint: "/api/health"
+  bootstrap_status_endpoint: "/api/bootstrap/status"
+  default_url: "http://localhost:3001"
+  behavior:
+    - "Detect uninitialized, basic, and full Dorado structures."
+    - "Support natural-language project description to prefill planning."
+    - "Generate docs/, layered SKILL.md, for-ai/, and index assets."
+    - "Continue into first-change setup when there is no active change."
+
+usage:
+  new_project_flow:
+    - "Inspect the target directory."
+    - "Launch dorado dashboard start [path]."
+    - "Describe the new project in natural language."
+    - "Use the GUI bootstrap to generate the project knowledge layer."
+    - "Continue into the first active change setup flow."

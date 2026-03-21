@@ -1,0 +1,381 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-03-21T16:48:15.772Z",
+  "assets": [
+    {
+      "id": "build-index-script",
+      "strategy": "direct_copy",
+      "category": "tooling",
+      "description": "Rebuild script for SKILL.index.json.",
+      "targetRelativePath": "build-index-auto.js",
+      "sourceRelativePath": "src/tools/build-index.js",
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "project-naming-conventions",
+      "strategy": "direct_copy",
+      "category": "conventions",
+      "description": "Project-adopted naming conventions copied from the Dorado mother spec.",
+      "targetRelativePath": "docs/project/naming-conventions.md",
+      "sourceRelativePath": "assets/project-conventions/zh-CN/naming-conventions.md",
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "project-skill-conventions",
+      "strategy": "direct_copy",
+      "category": "conventions",
+      "description": "Project-adopted layered SKILL conventions copied from the Dorado mother spec.",
+      "targetRelativePath": "docs/project/skill-conventions.md",
+      "sourceRelativePath": "assets/project-conventions/zh-CN/skill-conventions.md",
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "project-workflow-conventions",
+      "strategy": "direct_copy",
+      "category": "conventions",
+      "description": "Project-adopted workflow and change execution conventions copied from the Dorado mother spec.",
+      "targetRelativePath": "docs/project/workflow-conventions.md",
+      "sourceRelativePath": "assets/project-conventions/zh-CN/workflow-conventions.md",
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-advanced.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-advanced.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-cli.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-cli.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-commands.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-commands.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-dashboard.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-dashboard.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-services.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-services.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-tools.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-tools.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/module-workflow.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/module-workflow.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/api/README.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/api/README.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/design/README.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/design/README.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/planning/README.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/planning/README.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/project/api-overview.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/project/api-overview.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/project/architecture.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/project/architecture.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/project/module-map.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/project/module-map.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/project/overview.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/project/overview.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/project/tech-stack.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/project/tech-stack.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:docs/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "docs/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:for-ai/ai-guide.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "for-ai/ai-guide.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:for-ai/execution-protocol.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "for-ai/execution-protocol.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:README.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "README.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/core/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/core/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/advanced/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/advanced/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/cli/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/cli/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/commands/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/commands/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/dashboard/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/dashboard/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/services/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/services/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/tools/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/tools/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/modules/workflow/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/modules/workflow/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:src/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "src/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "generated:tests/SKILL.md",
+      "strategy": "template_generated",
+      "category": "templates",
+      "description": "Generated from Dorado template builders during project initialization.",
+      "targetRelativePath": "tests/SKILL.md",
+      "sourceRelativePath": null,
+      "overwritePolicy": "if_missing",
+      "exists": true
+    },
+    {
+      "id": "runtime:.dorado/asset-sources.json",
+      "strategy": "runtime_generated",
+      "category": "runtime",
+      "description": "Generated by Dorado at runtime or during index/config initialization.",
+      "targetRelativePath": ".dorado/asset-sources.json",
+      "sourceRelativePath": null,
+      "overwritePolicy": "rebuild",
+      "exists": true
+    },
+    {
+      "id": "runtime:.skillrc",
+      "strategy": "runtime_generated",
+      "category": "runtime",
+      "description": "Generated by Dorado at runtime or during index/config initialization.",
+      "targetRelativePath": ".skillrc",
+      "sourceRelativePath": null,
+      "overwritePolicy": "rebuild",
+      "exists": true
+    },
+    {
+      "id": "runtime:SKILL.index.json",
+      "strategy": "runtime_generated",
+      "category": "runtime",
+      "description": "Generated by Dorado at runtime or during index/config initialization.",
+      "targetRelativePath": "SKILL.index.json",
+      "sourceRelativePath": null,
+      "overwritePolicy": "rebuild",
+      "exists": true
+    }
+  ],
+  "summary": {
+    "directCopy": 4,
+    "templateGenerated": 30,
+    "runtimeGenerated": 3
+  }
+}

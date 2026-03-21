@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ ! -f "build-index-auto.js" ]; then
+  echo "[dorado] build-index-auto.js not found, skip index rebuild"
+  exit 0
+fi
+
+node build-index-auto.js
+git add SKILL.index.json 2>/dev/null || true
+

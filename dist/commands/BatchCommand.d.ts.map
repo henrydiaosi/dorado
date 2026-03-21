@@ -1,0 +1,1 @@
+{"version":3,"file":"BatchCommand.d.ts","sourceRoot":"","sources":["../../src/commands/BatchCommand.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,WAAW,EAAE,MAAM,eAAe,CAAC;AAE5C,qBAAa,YAAa,SAAQ,WAAW;IACrC,OAAO,CAAC,MAAM,EAAE,MAAM,EAAE,WAAW,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;CAiCnE"}

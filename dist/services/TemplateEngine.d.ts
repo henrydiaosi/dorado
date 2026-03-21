@@ -1,0 +1,43 @@
+import { ProjectMode } from '../core/types';
+export type { BootstrapFieldKey, BootstrapFieldSource, FeatureProjectContext, FeatureProjectReference, FeatureTemplateInput, NormalizedFeatureTemplateInput, NormalizedProjectBootstrapInput, PlannedProjectFile, ProjectBootstrapInput, TemplateDocumentLanguage, } from './templates/templateTypes';
+import { FeatureTemplateInput, NormalizedFeatureTemplateInput, NormalizedProjectBootstrapInput, ProjectBootstrapInput } from './templates/templateTypes';
+export declare class TemplateEngine {
+    private readonly inputFactory;
+    private readonly executionBuilder;
+    private readonly projectBuilder;
+    render(template: string, context: Record<string, unknown>): string;
+    parseSkillMetadata(content: string): {
+        title: string | null;
+        tags: string[];
+    };
+    normalizeFeatureTemplateInput(input: string | FeatureTemplateInput): NormalizedFeatureTemplateInput;
+    normalizeProjectBootstrapInput(input: ProjectBootstrapInput | undefined, fallbackName: string, mode: ProjectMode, inferredDefaults?: Partial<ProjectBootstrapInput>, presetDefaults?: Partial<ProjectBootstrapInput>): NormalizedProjectBootstrapInput;
+    generateProposalTemplate(input: string | FeatureTemplateInput): string;
+    generateTasksTemplate(input: string | FeatureTemplateInput): string;
+    generateVerificationTemplate(input: string | FeatureTemplateInput): string;
+    generateReviewTemplate(input: string | FeatureTemplateInput): string;
+    generateProjectReadmeTemplate(fallbackName: string, mode: ProjectMode, input?: ProjectBootstrapInput): string;
+    generateRootSkillTemplate(fallbackName: string, mode: ProjectMode, input?: ProjectBootstrapInput): string;
+    generateDocsSkillTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateSrcSkillTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateCoreSkillTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateTestsSkillTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateProjectOverviewTemplate(fallbackName: string, mode: ProjectMode, input?: ProjectBootstrapInput): string;
+    generateTechStackTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateArchitectureTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateModuleMapTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateApiOverviewTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateDesignDocsTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generatePlanningDocsTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateApiDocsTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;
+    generateModuleSkillTemplate(fallbackName: string, moduleName: string, input?: ProjectBootstrapInput, moduleSlug?: string): string;
+    generateApiAreaDocTemplate(fallbackName: string, apiAreaName: string, input?: ProjectBootstrapInput): string;
+    generateModuleApiDocTemplate(fallbackName: string, moduleName: string, input?: ProjectBootstrapInput, moduleSlug?: string): string;
+    generateDesignDocTemplate(fallbackName: string, docName: string, input?: ProjectBootstrapInput): string;
+    generatePlanningDocTemplate(fallbackName: string, docName: string, input?: ProjectBootstrapInput): string;
+    generateAiGuideTemplate(input?: ProjectBootstrapInput): string;
+    generateExecutionProtocolTemplate(input?: ProjectBootstrapInput): string;
+    generateBuildIndexScriptTemplate(): string;
+}
+export declare const templateEngine: TemplateEngine;
+//# sourceMappingURL=TemplateEngine.d.ts.map
