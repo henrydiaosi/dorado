@@ -45,6 +45,7 @@ dorado --help
 
 - [项目说明](docs/project-overview.md)
 - [安装使用文档](docs/installation.md)
+- [Skills 安装说明](docs/skills-installation.md)
 - [提示词文档](docs/prompt-guide.md)
 
 ## 适用场景

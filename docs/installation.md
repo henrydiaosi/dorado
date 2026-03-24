@@ -21,31 +21,11 @@ dorado --version
 dorado --help
 ```
 
-## 安装 Codex skill
+## Skills 安装
 
-```bash
-dorado skill install
-dorado skill status
-```
+Skills 的安装和同步说明已单独整理到：
 
-默认安装位置：
-
-```text
-~/.codex/skills/dorado
-```
-
-## 安装 Claude Code skill
-
-```bash
-dorado skill install-claude
-dorado skill status-claude
-```
-
-默认安装位置：
-
-```text
-~/.claude/skills/dorado
-```
+- [skills-installation.md](skills-installation.md)
 
 ## 常用命令
 
