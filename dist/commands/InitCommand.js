@@ -48,10 +48,12 @@ class InitCommand extends BaseCommand_1.BaseCommand {
                 return;
             }
             const config = await services_1.services.configManager.createDefaultConfig('standard');
-            await services_1.services.projectService.initializeProject(targetDir, config.mode);
-            this.success(`${structure.initialized ? 'Project knowledge skeleton completed' : 'Project initialized'} at ${targetDir}`);
-            this.info(`  Created project knowledge skeleton for ${path.basename(targetDir)}`);
-            this.info('  Added root/docs/src/tests SKILL files, project docs, for-ai guides, and SKILL.index.json');
+            await services_1.services.projectService.initializeProtocolShellProject(targetDir, config.mode, {
+                projectName: path.basename(targetDir),
+            });
+            this.success(`${structure.initialized ? 'Protocol shell refreshed' : 'Protocol shell initialized'} at ${targetDir}`);
+            this.info(`  Created Dorado protocol shell for ${path.basename(targetDir)}`);
+            this.info('  Added .skillrc, changes/, .dorado/, for-ai protocol docs, root SKILL.md, and SKILL.index.json');
         }
         catch (error) {
             this.error(`Failed to initialize project: ${error}`);

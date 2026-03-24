@@ -1,17 +1,13 @@
-# Dorado Docs
+# Dorado 文档
 
-## Languages
+当前发布仓只保留 3 份主文档：
 
-- [简体中文](zh-CN/project-overview.md)
-- [English](en-US/project-overview.md)
+1. [项目说明](project-overview.md)
+2. [安装使用文档](installation.md)
+3. [提示词文档](prompt-guide.md)
 
-## Guides
+如果你要改源码实现，不在这个发布仓内进行，请转到：
 
-- [中文项目说明](zh-CN/project-overview.md)
-- [中文使用教程](zh-CN/usage-guide.md)
-- [中文模式说明](zh-CN/modes.md)
-- [中文 AI 提示词教程](zh-CN/ai-prompt-guide.md)
-- [English Project Overview](en-US/project-overview.md)
-- [English Usage Guide](en-US/usage-guide.md)
-- [English Modes Guide](en-US/modes.md)
-- [English AI Prompt Guide](en-US/ai-prompt-guide.md)
+```text
+C:\Users\henry\Desktop\dorado-cli
+```

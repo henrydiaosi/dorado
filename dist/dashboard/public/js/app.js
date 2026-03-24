@@ -245,6 +245,35 @@ class DashboardApp {
     return labels[flag] || flag || this.t('unknownValue');
   }
 
+  getWorkflowProfileLabel(profile) {
+    return profile?.label || profile?.id || this.t('unknownValue');
+  }
+
+  getWorkflowProfileSourceLabel(source) {
+    const labels = {
+      explicit: this.t('workflowProfileExplicit'),
+      'flag-inference': this.t('workflowProfileFlagInference'),
+      'legacy-file-set': this.t('workflowProfileLegacyInference'),
+      'mode-default': this.t('workflowProfileModeFallback'),
+    };
+
+    return labels[source] || source || this.t('unknownValue');
+  }
+
+  renderWorkflowProfileBadge(profile, extraClass = '') {
+    if (!profile) {
+      return '';
+    }
+
+    const tone = profile.inferred
+      ? 'border-amber-500/25 bg-amber-500/10 text-amber-100'
+      : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-100';
+
+    return `<span class="rounded-full border px-3 py-1 text-xs tracking-[0.18em] ${tone} ${extraClass}">${
+      profile.inferred ? this.t('workflowProfileInferred') : this.t('workflowProfileExplicit')
+    }</span>`;
+  }
+
   async init() {
     document.documentElement.lang = this.state.language === 'zh' ? 'zh-CN' : 'en';
     await this.loadInitialView();
@@ -263,23 +292,15 @@ class DashboardApp {
       this.applyBootstrapStatus(bootstrap);
 
       if (!bootstrap.initialized) {
-        await this.loadBootstrapPresetData();
-        this.state.bootstrapStep = 0;
-        this.state.bootstrapPlan = null;
-        this.state.bootstrapPreview = null;
         this.state.view = 'bootstrap';
         return;
       }
 
       await this.loadDashboardData();
       if (this.state.features.length === 0) {
-        this.state.featureForm = this.createEmptyFeatureForm(
-          (this.state.skillsStatus?.modules || []).map(module => module.name)
-        );
-        this.state.view = 'featureSetup';
-      } else {
-        this.state.view = 'dashboard';
+        this.state.activeTab = 'execution';
       }
+      this.state.view = 'dashboard';
     } catch (error) {
       this.state.error = this.formatErrorMessage(error.message);
       this.state.view = 'bootstrap';
@@ -320,10 +341,6 @@ class DashboardApp {
 
       if (!bootstrap.initialized) {
         if (this.state.view !== 'bootstrap') {
-          await this.loadBootstrapPresetData();
-          this.state.bootstrapStep = 0;
-          this.state.bootstrapPlan = null;
-          this.state.bootstrapPreview = null;
           this.state.view = 'bootstrap';
         }
         this.render();
@@ -331,11 +348,10 @@ class DashboardApp {
       }
 
       await this.loadDashboardData();
-      if (this.state.features.length === 0 && this.state.view !== 'featureSetup') {
-        this.state.view = 'featureSetup';
-      } else if (this.state.features.length > 0 && this.state.view !== 'dashboard') {
-        this.state.view = 'dashboard';
+      if (this.state.features.length === 0) {
+        this.state.activeTab = 'execution';
       }
+      this.state.view = 'dashboard';
       this.state.error = null;
       this.render();
     } catch (error) {
@@ -379,7 +395,8 @@ class DashboardApp {
         if (commitResult.result?.firstChangeCreationError) {
           this.state.error = commitResult.result.firstChangeCreationError;
         }
-        this.state.view = 'featureSetup';
+        this.state.view = 'dashboard';
+        this.state.activeTab = 'execution';
       }
     } catch (error) {
       this.state.error = this.formatErrorMessage(error.message);
@@ -965,7 +982,7 @@ class DashboardApp {
         guiFirstBootstrap: '图形化引导初始化',
         bootstrapTitle: '先完成 Dorado 初始化，再进入改造流程。',
         bootstrapDescription:
-          '这个向导会先检查目录结构，采集项目规划信息，写入 {{skillrc}}、项目知识骨架和基础目录，然后自动进入第一个变更的创建向导。',
+          '这个向导会先检查目录结构并采集项目规划信息。`init` 只会写入 {{skillrc}}、协议骨架和基础目录；项目知识、业务 scaffold 与初始化摘要只会在后续显式 commit/backfill 时生成。',
         selected: '已选中',
         preset: '预设',
         bootstrapStepMode: '步骤 1 模式',
@@ -999,10 +1016,10 @@ class DashboardApp {
         bootstrapScaffoldFiles: '将创建的框架文件',
         bootstrapScaffoldFramework: '框架方案',
         bootstrapScaffoldInstallCommand: '安装与启动命令',
-        bootstrapScaffoldEmpty: '当前未选择业务框架脚手架。',
+        bootstrapScaffoldEmpty: '当前没有可预览的业务脚手架。协议初始化不会创建业务 scaffold，只有显式 commit 才会应用。',
         bootstrapScaffoldExistingFiles: '将保留的现有框架文件',
         bootstrapScaffoldExistingDirectories: '将复用的现有目录',
-        bootstrapExecuteCommands: '初始化时执行脚手架命令',
+        bootstrapExecuteCommands: '提交初始化时执行脚手架命令',
         bootstrapExecuteCommandsDescription: '勾选后会在提交初始化时尝试执行依赖安装命令。若失败，会写入 .dorado/bootstrap-recovery.json 补救清单。',
         bootstrapCommandPlanTitle: '命令执行计划',
         bootstrapCommandDeferred: '当前仅生成命令计划，不自动执行。',
@@ -1011,7 +1028,7 @@ class DashboardApp {
         bootstrapCommandStatusCompleted: '执行完成',
         bootstrapCommandStatusFailed: '执行失败，已写补救记录',
         bootstrapRecoveryFile: '补救记录',
-        bootstrapInitSummaryTitle: '本次初始化摘要',
+        bootstrapInitSummaryTitle: '本次 bootstrap 提交摘要',
         bootstrapInitDoradoFiles: 'Dorado 协议层',
         bootstrapInitBusinessFiles: '业务框架层',
         bootstrapInitCreated: '本次创建',
@@ -1027,7 +1044,7 @@ class DashboardApp {
         bootstrapProjectDescriptionPlaceholder: '用自然语言描述你要做的项目，例如：我要做一个使用 Next.js 和 TypeScript 的 doradospec 官网，包含官网展示、文档中心、后台内容管理和鉴权能力。',
         bootstrapProjectPreset: '项目预设',
         bootstrapProjectPresetTitle: '业务预设',
-        bootstrapProjectPresetDescription: '先选择业务场景预设，再进入详细规划。预设会提供推荐模式、技术栈、模块、API 与文档默认值。',
+        bootstrapProjectPresetDescription: '先选择业务场景预设，再进入详细规划。预设只负责提供项目知识和 scaffold 的默认规划，不会让协议初始化直接变成模板落地。',
         bootstrapProjectPresetRecommendedMode: '推荐模式',
         bootstrapProjectPresetRecommendedStack: '推荐技术栈',
         bootstrapProjectPresetSelectedHint: '当前会把该预设作为默认规划来源。',
@@ -1113,7 +1130,7 @@ class DashboardApp {
         legacyProjectTitle: '检测到旧项目或部分初始化项目',
         legacyProjectDescription: '当前目录已具备 Dorado 核心结构，但项目知识层还不完整。建议补齐 docs、SKILL、索引和 for-ai 指南后再长期使用仪表板。',
         openUpgradeWizard: '打开升级向导',
-        legacyUpgradeHint: '升级向导会复用当前目录，补齐推荐的项目知识结构。',
+        legacyUpgradeHint: 'GUI 现在只负责显示缺口与风险，补齐知识层请改用 CLI 或 skill。',
         docsNeedAttentionTitle: '文档层仍有缺口',
         docsNeedAttentionDescription: '核心文档或推荐文档仍有缺失，文档视图已降级为“缺失项优先展示”。',
         docsEmptyTitle: '当前还没有可展示的文档资产',
@@ -1123,7 +1140,7 @@ class DashboardApp {
         skillsEmptyTitle: '当前还没有可展示的技能结构',
         skillsEmptyDescription: '还没有发现分层 SKILL 或模块技能，可以先补齐项目知识层骨架。',
         executionEmptyTitle: '当前没有活跃变更',
-        executionEmptyDescription: '执行视图已就绪，但还没有进行中的改造计划。可以直接创建第一个变更。',
+        executionEmptyDescription: '执行视图已就绪，但还没有进行中的改造计划。GUI 只显示进度与概况，新的 change 建议通过 CLI 或 skill 创建。',
         name: '名称',
         mode: '模式',
         activatedOptionalStepsPreview: '激活的可选步骤预览',
@@ -1135,6 +1152,30 @@ class DashboardApp {
         dashboard: 'Dorado 仪表板',
         refresh: '刷新',
         createFeature: '创建变更',
+        inspectionOnlyMode: '查看与巡检优先',
+        bootstrapCliOnlyTitle: 'GUI 只负责查看，初始化请走 CLI 或 skill',
+        bootstrapCliOnlyDescription: '这个界面会展示当前目录状态、缺失结构、推断模块和后续建议，但不再承担主初始化逻辑。协议初始化、知识补齐和业务 scaffold 应由 CLI 或 skill 显式触发。',
+        bootstrapNextStepTitle: '推荐下一步',
+        bootstrapCliInitCommand: '运行 dorado init 初始化协议壳',
+        bootstrapCliDocsCommand: '运行 dorado docs generate 补齐项目知识层',
+        bootstrapCliStatusCommand: '运行 dorado status 查看文本状态摘要',
+        bootstrapCliSkillHint: '如果你正在通过 skill 逐步构建项目，也可以直接让 skill 驱动后续动作。',
+        inspectionSignalsTitle: '巡检指标',
+        inspectionStructureSignal: '结构完整度',
+        inspectionDocsSignal: '文档健康度',
+        inspectionSkillsSignal: '技能与索引健康度',
+        inspectionExecutionSignal: '执行态势',
+        inspectionHealthy: '健康',
+        inspectionAttention: '需关注',
+        inspectionIdle: '空闲',
+        inspectionStructureHealthy: '核心结构和推荐结构已经对齐。',
+        inspectionStructureAttention: '项目仍停留在协议壳或部分初始化状态。',
+        inspectionDocsHealthy: '项目文档没有明显缺口。',
+        inspectionDocsAttention: 'docs 层仍有缺失，建议继续补齐项目知识。',
+        inspectionSkillsHealthy: '分层 SKILL 与索引处于可用状态。',
+        inspectionSkillsAttention: '技能层或索引仍有缺口，建议优先修复。',
+        inspectionExecutionHealthy: '存在进行中的 change，可继续通过 GUI 巡检进度。',
+        inspectionExecutionIdle: '当前没有活跃 change，GUI 维持巡检视角即可。',
         projectTab: '项目',
         docsTab: '文档',
         skillsTab: '技能',
@@ -1204,7 +1245,7 @@ class DashboardApp {
         verifying: '验证中',
         currentWorkflow: '当前工作流',
         noActiveChanges: '当前还没有活跃变更。',
-        noActiveChangesHint: '可以直接在这里创建一个新的变更。',
+        noActiveChangesHint: '使用 `dorado new <change-name> <path>` 或 skill 创建新的 change，然后回到这里查看进度。',
         progress: '进度',
         currentStep: '当前步骤',
         modeLite: '轻量',
@@ -1255,7 +1296,7 @@ class DashboardApp {
         stepBackToDashboard: '回到仪表板并显示新创建的变更',
         nextDevelopmentGuideTitle: '后续如何继续开发',
         nextDevelopmentGuideDescription: '先查看初始化沉淀的项目知识，再决定是直接创建首个变更，还是回到仪表板继续巡检。',
-        nextOpenBootstrapSummary: '查看初始化摘要',
+        nextOpenBootstrapSummary: '查看 bootstrap 提交摘要',
         nextOpenModuleMap: '查看模块地图',
         nextOpenApiOverview: '查看 API 总览',
         nextOpenSkillIndex: '查看技能索引',
@@ -1275,7 +1316,7 @@ class DashboardApp {
         guiFirstBootstrap: 'GUI-first bootstrap',
         bootstrapTitle: 'Initialize Dorado first, then move into the delivery flow.',
         bootstrapDescription:
-          'This wizard checks the repository structure, captures project-planning input, writes {{skillrc}}, the project-knowledge skeleton, and the base directories, then moves into the first change setup flow.',
+          'This wizard inspects the repository and captures planning input. `init` writes only {{skillrc}}, the protocol shell, and base directories; project knowledge, business scaffold, and the bootstrap summary are generated only by an explicit commit/backfill step.',
         selected: 'Selected',
         preset: 'Preset',
         bootstrapStepMode: 'Step 1 Mode',
@@ -1309,10 +1350,10 @@ class DashboardApp {
         bootstrapScaffoldFiles: 'Framework files to create',
         bootstrapScaffoldFramework: 'Framework',
         bootstrapScaffoldInstallCommand: 'Install and run',
-        bootstrapScaffoldEmpty: 'No business scaffold is selected for the current preset.',
+        bootstrapScaffoldEmpty: 'No business scaffold preview is selected for the current preset. Protocol init stays empty; scaffold only applies during explicit bootstrap commit.',
         bootstrapScaffoldExistingFiles: 'Existing framework files to preserve',
         bootstrapScaffoldExistingDirectories: 'Existing directories to reuse',
-        bootstrapExecuteCommands: 'Execute scaffold commands during init',
+        bootstrapExecuteCommands: 'Execute scaffold commands during commit',
         bootstrapExecuteCommandsDescription: 'When enabled, bootstrap will try to run dependency installation commands on commit. If a step fails, Dorado writes .dorado/bootstrap-recovery.json with recovery guidance.',
         bootstrapCommandPlanTitle: 'Command plan',
         bootstrapCommandDeferred: 'Commands are prepared but deferred.',
@@ -1321,7 +1362,7 @@ class DashboardApp {
         bootstrapCommandStatusCompleted: 'Completed',
         bootstrapCommandStatusFailed: 'Failed with recovery record',
         bootstrapRecoveryFile: 'Recovery file',
-        bootstrapInitSummaryTitle: 'Initialization summary',
+        bootstrapInitSummaryTitle: 'Bootstrap commit summary',
         bootstrapInitDoradoFiles: 'Dorado protocol layer',
         bootstrapInitBusinessFiles: 'Business framework layer',
         bootstrapInitCreated: 'Created now',
@@ -1337,7 +1378,7 @@ class DashboardApp {
         bootstrapProjectDescriptionPlaceholder: 'Describe the project in natural language, for example: Build a doradospec website with Next.js and TypeScript, including marketing pages, docs, admin content management, and auth.',
         bootstrapProjectPreset: 'Project preset',
         bootstrapProjectPresetTitle: 'Business preset',
-        bootstrapProjectPresetDescription: 'Choose a business preset first. It provides recommended mode, stack, modules, APIs, and default documentation planning.',
+        bootstrapProjectPresetDescription: 'Choose a business preset first. Presets only provide default planning input for project knowledge and scaffold previews; they do not turn protocol init into a template bootstrap.',
         bootstrapProjectPresetRecommendedMode: 'Recommended mode',
         bootstrapProjectPresetRecommendedStack: 'Recommended tech stack',
         bootstrapProjectPresetSelectedHint: 'This preset will be used as the default planning source.',
@@ -1409,11 +1450,11 @@ class DashboardApp {
         sourceEndpoint: 'Endpoint',
         sourceProjectSummaryDescription: 'Provides the project name, mode, structure level, current path, and creation time.',
         sourceBootstrapStatusDescription: 'Provides structure completeness, missing paths, and upgrade suggestions to decide whether the knowledge layer still needs work.',
-        sourceWorkflowDescription: 'Provides the workflow core steps, optional steps, and execution rules for the current mode.',
-        sourceAssetStatusDescription: 'Provides the effective project asset manifest and distinguishes direct-copy, template-generated, and runtime-generated outputs.',
+        sourceWorkflowDescription: 'Provides the current mode workflow plus the default workflow profile and compatibility inference used by the dashboard.',
+        sourceAssetStatusDescription: 'Provides the effective asset manifest, distinguishes direct-copy, template-generated, and runtime-generated outputs, and notes that the bootstrap summary appears only on explicit commit.',
         sourceDocsStatusDescription: 'Provides core-doc coverage and the presence of API, design, and planning documents.',
         sourceSkillsStatusDescription: 'Provides layered SKILL files, discovered modules, and the index snapshot for the skills layer.',
-        sourceExecutionStatusDescription: 'Provides the active change list, current statuses, and progress summary.',
+        sourceExecutionStatusDescription: 'Provides the active change list, progress summary, and the per-change workflow profile shown in the execution view.',
         sourceFlagsDescription: 'Provides the supported flags for new changes in the current project mode.',
         statusReady: 'Ready',
         statusNeedsUpgrade: 'Needs upgrade',
@@ -1424,17 +1465,17 @@ class DashboardApp {
         legacyProjectTitle: 'A legacy or partially initialized project was detected',
         legacyProjectDescription: 'The repository already has the Dorado core structure, but the project knowledge layer is still incomplete. Finish docs, SKILL files, index assets, and AI guides before treating this dashboard as complete.',
         openUpgradeWizard: 'Open upgrade wizard',
-        legacyUpgradeHint: 'The upgrade wizard reuses the current directory and fills in the recommended knowledge-layer files.',
+        legacyUpgradeHint: 'The GUI now only surfaces the gaps and risk signals. Use CLI or skills to backfill the missing knowledge layer.',
         docsNeedAttentionTitle: 'The docs layer still has gaps',
         docsNeedAttentionDescription: 'Required or recommended docs are still missing, so the docs view is prioritizing missing items.',
         docsEmptyTitle: 'There are no document assets to show yet',
-        docsEmptyDescription: 'No tracked project docs were found yet. Generate the skeleton first from the upgrade wizard or bootstrap flow.',
+        docsEmptyDescription: 'It is valid for API, design, and planning docs to stay empty in a protocol-shell project. They normally appear after `dorado docs generate` or later knowledge-building skills.',
         skillsNeedAttentionTitle: 'The skills layer still has gaps',
-        skillsNeedAttentionDescription: 'Root skills, module skills, or index assets are incomplete, so the skills view is prioritizing missing items.',
+        skillsNeedAttentionDescription: 'Root skills, module skills, or index assets are incomplete, so the skills view prioritizes protocol gaps and index issues.',
         skillsEmptyTitle: 'There is no skills structure to show yet',
-        skillsEmptyDescription: 'No layered SKILL files or module skills were discovered yet. Fill in the project knowledge skeleton first.',
+        skillsEmptyDescription: 'A protocol-shell project can legitimately have no module-level skills yet. They normally appear after `dorado docs generate` or later knowledge-building skills.',
         executionEmptyTitle: 'There are no active changes yet',
-        executionEmptyDescription: 'The execution view is ready, but there is no in-flight change yet. Create the first change directly from here.',
+        executionEmptyDescription: 'The execution view is ready, but there is no in-flight change yet. The GUI now focuses on inspection; create new changes from CLI or skills.',
         name: 'Name',
         mode: 'Mode',
         activatedOptionalStepsPreview: 'Activated optional steps preview',
@@ -1446,6 +1487,30 @@ class DashboardApp {
         dashboard: 'Dorado dashboard',
         refresh: 'Refresh',
         createFeature: 'Create change',
+        inspectionOnlyMode: 'Inspection-first',
+        bootstrapCliOnlyTitle: 'The GUI is now inspection-first; use CLI or skills for initialization',
+        bootstrapCliOnlyDescription: 'This view shows the current directory status, missing structure, inferred modules, and recommended next steps, but it no longer carries the main creation flow. Protocol init, knowledge backfill, and business scaffold should be triggered explicitly from CLI or skills.',
+        bootstrapNextStepTitle: 'Recommended next steps',
+        bootstrapCliInitCommand: 'Run dorado init to create the protocol shell',
+        bootstrapCliDocsCommand: 'Run dorado docs generate to backfill the project knowledge layer',
+        bootstrapCliStatusCommand: 'Run dorado status for a textual project summary',
+        bootstrapCliSkillHint: 'If you are building the project progressively with skills, let the skill drive the next explicit action instead.',
+        inspectionSignalsTitle: 'Inspection signals',
+        inspectionStructureSignal: 'Structure alignment',
+        inspectionDocsSignal: 'Docs health',
+        inspectionSkillsSignal: 'Skills and index health',
+        inspectionExecutionSignal: 'Execution posture',
+        inspectionHealthy: 'Healthy',
+        inspectionAttention: 'Needs attention',
+        inspectionIdle: 'Idle',
+        inspectionStructureHealthy: 'Core and recommended structure are aligned.',
+        inspectionStructureAttention: 'The project is still at protocol-shell or partial-initialization level.',
+        inspectionDocsHealthy: 'The docs layer does not show obvious gaps.',
+        inspectionDocsAttention: 'The docs layer still has gaps and should be backfilled further.',
+        inspectionSkillsHealthy: 'Layered skills and the index are in a usable state.',
+        inspectionSkillsAttention: 'The skills layer or index still has gaps and should be repaired first.',
+        inspectionExecutionHealthy: 'There are active changes in flight; use the GUI to inspect progress.',
+        inspectionExecutionIdle: 'There is no active change right now, so the GUI stays in inspection mode.',
         projectTab: 'Project',
         docsTab: 'Docs',
         skillsTab: 'Skills',
@@ -1504,7 +1569,8 @@ class DashboardApp {
         assetManifestPath: 'Manifest path',
         assetSourcePath: 'Packaged source',
         assetTargetPath: 'Project path',
-        assetMissing: 'This project does not have an asset-source manifest yet.',
+        assetPhaseDescription: 'This panel only explains where current assets came from: direct-copy assets belong to the protocol layer, template-generated assets come from knowledge generation, and runtime-generated assets are execution artifacts. The bootstrap summary appears only on explicit commit.',
+        assetMissing: 'There is no asset manifest yet. Protocol-shell initialization alone does not create the full manifest; it normally appears after knowledge backfill or a bootstrap commit.',
         allSkillsReady: 'All skill layers are present',
         missingSkillsLabel: 'Missing skills',
         generatedAt: 'Last updated',
@@ -1514,8 +1580,23 @@ class DashboardApp {
         implementing: 'Implementing',
         verifying: 'Verifying',
         currentWorkflow: 'Current workflow',
+        workflowProfileLabel: 'Workflow profile',
+        workflowProfileDefaultLabel: 'Default profile',
+        workflowProfilesAvailableLabel: 'Available profiles',
+        workflowProfileExplicit: 'Explicit',
+        workflowProfileInferred: 'Inferred',
+        workflowProfileFlagInference: 'Flag-inferred',
+        workflowProfileLegacyInference: 'Legacy file-set',
+        workflowProfileModeFallback: 'Mode fallback',
+        workflowProfileReasonLabel: 'Resolution basis',
+        workflowProfileProtocolFilesLabel: 'Minimum protocol files',
+        workflowProfileArchiveFocusLabel: 'Archive focus',
+        workflowProfileAvailableHint: 'The dashboard only displays the default profile and compatibility inference. Real profile selection still belongs to CLI or skills.',
+        workflowProfileDefaultHint: 'The current default profile is still inferred from project mode until explicit workflowProfiles config lands.',
+        docsProtocolHint: 'API, design, and planning docs normally appear only after the project knowledge layer is backfilled.',
+        skillsProtocolHint: 'Module skills and the skill index normally appear only after the project knowledge layer is built.',
         noActiveChanges: 'There are no active changes yet.',
-        noActiveChangesHint: 'Create a change directly from here.',
+        noActiveChangesHint: 'Use `dorado new <change-name> <path>` or a skill to create the next change, then return here to inspect progress.',
         progress: 'Progress',
         currentStep: 'Current step',
         modeLite: 'Lite',
@@ -1566,7 +1647,7 @@ class DashboardApp {
         stepBackToDashboard: 'Return to the dashboard and show the new change',
         nextDevelopmentGuideTitle: 'What to do next',
         nextDevelopmentGuideDescription: 'Review the generated project knowledge first, then decide whether to create the first change now or return to the dashboard.',
-        nextOpenBootstrapSummary: 'Open bootstrap summary',
+        nextOpenBootstrapSummary: 'Open bootstrap commit summary',
         nextOpenModuleMap: 'Open module map',
         nextOpenApiOverview: 'Open API overview',
         nextOpenSkillIndex: 'Open skill index',
@@ -1935,6 +2016,7 @@ class DashboardApp {
               <div><span class="text-slate-500">${this.t('assetGeneratedAt')}:</span> ${assetStatus.generatedAt || '-'}</div>
               <div><span class="text-slate-500">${this.t('assetManifestPath')}:</span> ${assetStatus.path || '-'}</div>
             </div>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-500">${this.t('assetPhaseDescription')}</p>
           </div>
           <div class="grid grid-cols-3 gap-3 text-center text-sm">
             <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-emerald-100">
@@ -2009,6 +2091,7 @@ class DashboardApp {
       return '';
     }
 
+    const projectPath = this.state.bootstrap?.projectPath || this.state.project?.path || '.';
     return `
       <section class="rounded-[1.75rem] border border-amber-500/30 bg-amber-500/10 px-6 py-5 text-amber-50">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -2018,13 +2101,9 @@ class DashboardApp {
             <p class="mt-2 max-w-3xl text-sm leading-6 text-amber-100/90">${this.t('legacyProjectDescription')}</p>
             <p class="mt-2 text-xs text-amber-100/70">${this.t('legacyUpgradeHint')}</p>
           </div>
-          <button
-            type="button"
-            onclick="app.openUpgradeWizard()"
-            class="inline-flex items-center justify-center rounded-full border border-amber-200/40 bg-amber-200/10 px-5 py-3 text-sm font-semibold text-amber-50 transition hover:bg-amber-200/20"
-          >
-            ${this.t('openUpgradeWizard')}
-          </button>
+          <div class="rounded-2xl border border-amber-200/30 bg-amber-950/20 px-4 py-3 font-mono text-xs text-amber-100">
+            dorado docs generate ${this.escapeHtml(projectPath)}
+          </div>
         </div>
       </section>
     `;
@@ -2063,6 +2142,90 @@ class DashboardApp {
 
   renderBootstrap() {
     const bootstrap = this.state.bootstrap;
+    const projectPath = bootstrap?.projectPath || '.';
+    const nextCommands = bootstrap?.initialized
+      ? [
+          `dorado docs generate ${projectPath}`,
+          `dorado status ${projectPath}`,
+        ]
+      : [
+          `dorado init ${projectPath}`,
+          `dorado status ${projectPath}`,
+        ];
+
+    return `
+      <main class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(245,158,11,0.18),_transparent_34%),linear-gradient(180deg,_#111111_0%,_#050505_100%)] text-stone-100">
+        <section class="mx-auto max-w-6xl px-6 py-12 lg:px-10">
+          <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div class="rounded-[2rem] border border-stone-800 bg-stone-950/85 p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+              <div class="flex items-start justify-between gap-4">
+                <div class="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-amber-200">
+                  ${this.t('inspectionOnlyMode')}
+                </div>
+                ${this.renderLanguageSwitcher()}
+              </div>
+              <h1 class="mt-6 text-4xl font-semibold tracking-tight text-stone-50">${this.t('bootstrapCliOnlyTitle')}</h1>
+              <p class="mt-4 max-w-2xl text-base leading-7 text-stone-300">${this.t('bootstrapCliOnlyDescription')}</p>
+              ${this.renderErrorBanner()}
+              <div class="mt-8 rounded-[1.5rem] border border-stone-800 bg-stone-900/75 p-6">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">${this.t('bootstrapNextStepTitle')}</p>
+                <div class="mt-4 grid gap-3">
+                  ${nextCommands.map(command => `
+                    <div class="rounded-2xl border border-stone-800 bg-stone-950/80 px-4 py-3 font-mono text-sm text-amber-100">${this.escapeHtml(command)}</div>
+                  `).join('')}
+                </div>
+                <p class="mt-4 text-sm leading-6 text-stone-400">${this.t('bootstrapCliSkillHint')}</p>
+              </div>
+            </div>
+            <div class="space-y-6">
+              <section class="rounded-[2rem] border border-stone-800 bg-stone-950/90 p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs uppercase tracking-[0.25em] text-stone-500">${this.t('projectCheck')}</p>
+                    <h2 class="mt-2 text-2xl font-semibold text-stone-50">${bootstrap?.projectName || this.t('currentDirectory')}</h2>
+                  </div>
+                  <span class="rounded-full border ${bootstrap?.initialized ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200' : 'border-amber-500/30 bg-amber-500/10 text-amber-200'} px-3 py-1 text-xs uppercase tracking-[0.2em]">
+                    ${bootstrap?.initialized ? this.t('ready') : this.t('needsInit')}
+                  </span>
+                </div>
+                <p class="mt-4 break-all rounded-2xl bg-stone-900 px-4 py-3 text-sm text-stone-400">${bootstrap?.projectPath || ''}</p>
+                <div class="mt-5 space-y-3">
+                  ${(bootstrap?.checks || []).map(check => `
+                    <div class="flex items-start justify-between gap-4 rounded-2xl border ${check.exists ? 'border-emerald-500/20 bg-emerald-500/8' : 'border-stone-800 bg-stone-900/80'} px-4 py-3">
+                      <div>
+                        <p class="text-sm font-medium text-stone-100">${check.name}</p>
+                        <p class="mt-1 break-all text-xs text-stone-500">${check.path}</p>
+                      </div>
+                      <span class="text-xs uppercase tracking-[0.2em] ${check.exists ? 'text-emerald-300' : 'text-stone-500'}">
+                        ${check.exists ? this.t('present') : this.t('missing')}
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
+              </section>
+              <section class="rounded-[2rem] border border-stone-800 bg-stone-950/90 p-6">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">${this.t('structurePreview')}</p>
+                <div class="mt-4 space-y-3">
+                  ${(bootstrap?.structurePreview || []).map(item => `
+                    <div class="rounded-2xl border border-stone-800 bg-stone-900/80 px-4 py-3 font-mono text-sm text-stone-300">${item}</div>
+                  `).join('')}
+                </div>
+              </section>
+              <section class="rounded-[2rem] border border-stone-800 bg-stone-950/90 p-6">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">${this.t('bootstrapDetectedModulesTitle')}</p>
+                <p class="mt-3 text-sm leading-6 text-stone-400">${this.t('bootstrapStructurePolicyDescription')}</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  ${(bootstrap?.inferredModules || []).map(module => `
+                    <span class="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-100">${module}</span>
+                  `).join('') || `<span class="text-sm text-stone-500">${this.t('bootstrapDetectedModulesEmpty')}</span>`}
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    `;
+
     const selectedWorkflowPreset = this.state.presets.find(preset => preset.mode === this.state.selectedMode);
     const selectedProjectPresetRaw = this.state.projectPresets.find(
       preset => preset.id === this.state.selectedProjectPresetId
@@ -3075,6 +3238,7 @@ class DashboardApp {
               ${this.t('mode')}:
               <span class="font-medium text-emerald-200">${this.getModeLabel(this.state.project?.mode)}</span>
             </p>
+            <p class="mt-2 text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('inspectionOnlyMode')}</p>
           </div>
           <div class="flex gap-3">
             ${this.renderLanguageSwitcher()}
@@ -3084,13 +3248,6 @@ class DashboardApp {
               class="rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
             >
               ${this.t('refresh')}
-            </button>
-            <button
-              type="button"
-              onclick="app.createFeature()"
-              class="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
-            >
-              ${this.t('createFeature')}
             </button>
           </div>
         </div>
@@ -3155,6 +3312,7 @@ class DashboardApp {
       skillIndex: { exists: false, needsRebuild: true, stale: false, reasons: [] },
     };
     const execution = this.state.execution || { totalActiveChanges: 0 };
+    const defaultProfile = this.state.workflow?.defaultProfile || execution.defaultProfile || null;
     const cards = [
       { label: this.t('structureLevel'), value: this.getStructureLevelLabel(project.structureLevel || 'none'), tone: 'from-emerald-500/30 to-emerald-300/10' },
       { label: this.t('docsCoverage'), value: `${docsStatus.coverage || 0}%`, tone: 'from-sky-500/30 to-sky-300/10' },
@@ -3180,6 +3338,7 @@ class DashboardApp {
             </article>
           `).join('')}
         </div>
+        ${this.renderInspectionSignalsCard(project, docsStatus, skillsStatus, execution)}
         ${this.renderIssueBanner(this.t('missingRequiredLabel'), docsStatus.missingRequired, 'rose')}
         ${this.renderIssueBanner(this.t('missingRecommendedLabel'), docsStatus.missingRecommended, 'amber')}
         ${this.renderIssueBanner(this.t('missingSkillsLabel'), skillsStatus.missingRecommended, 'amber')}
@@ -3197,6 +3356,13 @@ class DashboardApp {
           </section>
           <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-6">
             <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('currentWorkflow')}</p>
+            ${defaultProfile
+              ? `<div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
+                  <span class="text-slate-500">${this.t('workflowProfileDefaultLabel')}:</span>
+                  <span class="font-medium text-slate-100">${this.escapeHtml(this.getWorkflowProfileLabel(defaultProfile))}</span>
+                  ${this.renderWorkflowProfileBadge(defaultProfile)}
+                </div>`
+              : ''}
             <div class="mt-4 flex flex-wrap gap-3">
               ${(this.state.workflow?.core_steps || []).map(step => `
                 <span class="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">${this.getWorkflowStepLabel(step)}</span>
@@ -3256,6 +3422,91 @@ class DashboardApp {
     `;
   }
 
+  renderInspectionSignalsCard(project, docsStatus, skillsStatus, execution) {
+    const signals = [
+      {
+        label: this.t('inspectionStructureSignal'),
+        tone: project.structureLevel === 'full' ? 'emerald' : 'amber',
+        status: project.structureLevel === 'full' ? this.t('inspectionHealthy') : this.t('inspectionAttention'),
+        description:
+          project.structureLevel === 'full'
+            ? this.t('inspectionStructureHealthy')
+            : this.t('inspectionStructureAttention'),
+      },
+      {
+        label: this.t('inspectionDocsSignal'),
+        tone:
+          (docsStatus.missingRequired?.length || 0) === 0 && (docsStatus.missingRecommended?.length || 0) === 0
+            ? 'emerald'
+            : 'amber',
+        status:
+          (docsStatus.missingRequired?.length || 0) === 0 && (docsStatus.missingRecommended?.length || 0) === 0
+            ? this.t('inspectionHealthy')
+            : this.t('inspectionAttention'),
+        description:
+          (docsStatus.missingRequired?.length || 0) === 0 && (docsStatus.missingRecommended?.length || 0) === 0
+            ? this.t('inspectionDocsHealthy')
+            : this.t('inspectionDocsAttention'),
+      },
+      {
+        label: this.t('inspectionSkillsSignal'),
+        tone:
+          (skillsStatus.missingRecommended?.length || 0) === 0 &&
+          skillsStatus.skillIndex?.exists &&
+          !skillsStatus.skillIndex?.needsRebuild
+            ? 'emerald'
+            : 'amber',
+        status:
+          (skillsStatus.missingRecommended?.length || 0) === 0 &&
+          skillsStatus.skillIndex?.exists &&
+          !skillsStatus.skillIndex?.needsRebuild
+            ? this.t('inspectionHealthy')
+            : this.t('inspectionAttention'),
+        description:
+          (skillsStatus.missingRecommended?.length || 0) === 0 &&
+          skillsStatus.skillIndex?.exists &&
+          !skillsStatus.skillIndex?.needsRebuild
+            ? this.t('inspectionSkillsHealthy')
+            : this.t('inspectionSkillsAttention'),
+      },
+      {
+        label: this.t('inspectionExecutionSignal'),
+        tone: (execution.totalActiveChanges || 0) > 0 ? 'emerald' : 'slate',
+        status: (execution.totalActiveChanges || 0) > 0 ? this.t('inspectionHealthy') : this.t('inspectionIdle'),
+        description:
+          (execution.totalActiveChanges || 0) > 0
+            ? this.t('inspectionExecutionHealthy')
+            : this.t('inspectionExecutionIdle'),
+      },
+    ];
+
+    const toneClass = {
+      emerald: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-100',
+      amber: 'border-amber-500/25 bg-amber-500/10 text-amber-100',
+      slate: 'border-slate-700 bg-slate-900/80 text-slate-200',
+    };
+
+    return `
+      <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-6">
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('inspectionSignalsTitle')}</p>
+          <span class="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">${signals.length}</span>
+        </div>
+        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          ${signals.map(signal => `
+            <article class="rounded-[1.5rem] border border-slate-800 bg-slate-900/80 p-5">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-sm text-slate-300">${signal.label}</p>
+                <span class="rounded-full border px-3 py-1 text-xs ${toneClass[signal.tone]}">${signal.status}</span>
+              </div>
+              <p class="mt-4 text-sm leading-6 text-slate-400">${signal.description}</p>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
   renderDocs() {
     const docsStatus = this.state.docsStatus
       ? {
@@ -3265,14 +3516,11 @@ class DashboardApp {
           planningDocs: this.state.docsStatus.planningDocs || [],
         }
       : null;
-    if (!docsStatus || !docsStatus.items?.length) {
-      return `
-        <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-10 text-center">
-          <p class="text-lg text-slate-200">${this.t('docsStatusTitle')}</p>
-          <p class="mt-2 text-sm text-slate-500">${this.t('noDocsTracked')}</p>
-        </section>
-      `;
+    if (!docsStatus) {
+      return '';
     }
+
+    const hasTrackedDocs = Boolean(docsStatus.items?.length);
 
     return `
       <div class="space-y-8">
@@ -3302,19 +3550,26 @@ class DashboardApp {
             <span class="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">${docsStatus.coverage}%</span>
           </div>
           <p class="mt-3 text-sm text-slate-400">${this.t('generatedAt')}: ${docsStatus.updatedAt || '-'}</p>
-          <div class="mt-5 grid gap-3">
-            ${docsStatus.items.map(item => `
-              <div class="rounded-2xl border ${item.exists ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-rose-500/25 bg-rose-500/10'} px-4 py-3 text-sm">
-                <div class="flex items-center justify-between gap-4">
-                  <span class="font-mono text-slate-100">${item.path}</span>
-                  <div class="flex items-center gap-3">
-                    <span class="${item.exists ? 'text-emerald-100' : 'text-rose-100'}">${item.exists ? this.t('present') : this.t('missing')}</span>
-                    ${item.exists ? this.renderPreviewButton(item.path, item.key) : ''}
+          <p class="mt-2 text-sm leading-6 text-slate-500">${this.t('docsProtocolHint')}</p>
+          ${hasTrackedDocs
+            ? `<div class="mt-5 grid gap-3">
+                ${docsStatus.items.map(item => `
+                  <div class="rounded-2xl border ${item.exists ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-rose-500/25 bg-rose-500/10'} px-4 py-3 text-sm">
+                    <div class="flex items-center justify-between gap-4">
+                      <span class="font-mono text-slate-100">${item.path}</span>
+                      <div class="flex items-center gap-3">
+                        <span class="${item.exists ? 'text-emerald-100' : 'text-rose-100'}">${item.exists ? this.t('present') : this.t('missing')}</span>
+                        ${item.exists ? this.renderPreviewButton(item.path, item.key) : ''}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
+                `).join('')}
+              </div>`
+            : `<div class="mt-5 rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-4">
+                <p class="text-base font-medium text-slate-100">${this.t('docsEmptyTitle')}</p>
+                <p class="mt-2 text-sm leading-6 text-slate-400">${this.t('docsEmptyDescription')}</p>
+              </div>`
+          }
         </section>
         <div class="grid gap-6 xl:grid-cols-[1fr_1fr_1fr]">
           ${this.renderCollectionCard(this.t('apiDocsTitle'), docsStatus.apiDocs || [], this.t('noApiDocs'), 'sky')}
@@ -3364,6 +3619,7 @@ class DashboardApp {
             <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('skillsStatusTitle')}</p>
             <span class="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">${skillsStatus.existing}/${skillsStatus.totalSkillFiles}</span>
           </div>
+          <p class="mt-3 text-sm leading-6 text-slate-500">${this.t('skillsProtocolHint')}</p>
           <div class="mt-5 grid gap-3">
             ${skillsStatus.rootSkills.map(skill => `
               <div class="rounded-2xl border ${skill.exists ? 'border-sky-500/25 bg-sky-500/10' : 'border-slate-800 bg-slate-900/80'} px-4 py-3 text-sm">
@@ -3449,11 +3705,19 @@ class DashboardApp {
   }
 
   renderFeatures() {
+    const defaultProfile = this.state.workflow?.defaultProfile || this.state.execution?.defaultProfile || null;
     if (this.state.features.length === 0) {
       return `
         <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-10 text-center">
           <p class="text-lg text-slate-200">${this.t('noActiveChanges')}</p>
           <p class="mt-2 text-sm text-slate-500">${this.t('noActiveChangesHint')}</p>
+          ${defaultProfile
+            ? `<div class="mt-5 inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
+                <span class="text-slate-500">${this.t('workflowProfileDefaultLabel')}:</span>
+                <span class="font-medium text-slate-100">${this.escapeHtml(this.getWorkflowProfileLabel(defaultProfile))}</span>
+                ${this.renderWorkflowProfileBadge(defaultProfile)}
+              </div>`
+            : ''}
         </section>
       `;
     }
@@ -3466,6 +3730,14 @@ class DashboardApp {
               <div>
                 <h3 class="text-lg font-semibold text-slate-50">${feature.name}</h3>
                 <p class="mt-2 text-sm leading-6 text-slate-400">${this.escapeHtml(this.getFeatureDescriptionText(feature.description))}</p>
+                ${feature.workflowProfile
+                  ? `<div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                      <span class="text-slate-500">${this.t('workflowProfileLabel')}:</span>
+                      <span class="font-medium text-slate-100">${this.escapeHtml(this.getWorkflowProfileLabel(feature.workflowProfile))}</span>
+                      ${this.renderWorkflowProfileBadge(feature.workflowProfile)}
+                    </div>
+                    <p class="mt-2 text-xs leading-6 text-slate-500">${this.t('workflowProfileReasonLabel')}: ${this.escapeHtml(this.getWorkflowProfileSourceLabel(feature.workflowProfile.source))}</p>`
+                  : ''}
               </div>
               <span class="rounded-full border border-slate-700 px-3 py-1 text-xs tracking-[0.2em] text-slate-300">${this.getFeatureStatusLabel(feature.status)}</span>
             </div>
@@ -3496,6 +3768,9 @@ class DashboardApp {
       return '';
     }
 
+    const defaultProfile = workflow.defaultProfile || this.state.execution?.defaultProfile || null;
+    const availableProfiles = workflow.availableProfiles || [];
+
     return `
       <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="rounded-[2rem] border border-slate-800 bg-slate-950/80 p-6">
@@ -3515,6 +3790,46 @@ class DashboardApp {
             ${(workflow.activated_steps || []).map(step => `
               <span class="rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">${this.getWorkflowStepLabel(step)}</span>
             `).join('') || `<span class="text-sm text-slate-500">${this.t('noOptionalStepsForMode')}</span>`}
+          </div>
+        </section>
+      </div>
+      <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section class="rounded-[2rem] border border-slate-800 bg-slate-950/80 p-6">
+          <div class="flex items-center justify-between gap-4">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('workflowProfileDefaultLabel')}</p>
+            ${defaultProfile ? this.renderWorkflowProfileBadge(defaultProfile) : ''}
+          </div>
+          ${defaultProfile
+            ? `<h3 class="mt-4 text-xl font-semibold text-slate-50">${this.escapeHtml(this.getWorkflowProfileLabel(defaultProfile))}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">${this.escapeHtml(defaultProfile.description || '')}</p>
+                <p class="mt-3 text-xs leading-6 text-slate-500">${this.t('workflowProfileDefaultHint')}</p>
+                <div class="mt-5 space-y-3 text-sm text-slate-300">
+                  <div><span class="text-slate-500">${this.t('workflowProfileReasonLabel')}:</span> ${this.escapeHtml(this.getWorkflowProfileSourceLabel(defaultProfile.source))}</div>
+                  <div><span class="text-slate-500">${this.t('workflowProfileProtocolFilesLabel')}:</span> ${this.escapeHtml((defaultProfile.minimumProtocolFiles || []).join(', ') || '-')}</div>
+                  <div><span class="text-slate-500">${this.t('workflowProfileArchiveFocusLabel')}:</span> ${this.escapeHtml((defaultProfile.archiveFocus || []).join(', ') || '-')}</div>
+                </div>`
+            : `<p class="mt-4 text-sm text-slate-500">${this.t('unknownValue')}</p>`
+          }
+        </section>
+        <section class="rounded-[2rem] border border-slate-800 bg-slate-950/80 p-6">
+          <div class="flex items-center justify-between gap-4">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('workflowProfilesAvailableLabel')}</p>
+            <span class="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">${availableProfiles.length}</span>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-slate-500">${this.t('workflowProfileAvailableHint')}</p>
+          <div class="mt-5 grid gap-3">
+            ${availableProfiles.map(profile => `
+              <article class="rounded-2xl border ${profile.id === defaultProfile?.id ? 'border-emerald-500/25 bg-emerald-500/8' : 'border-slate-800 bg-slate-900/80'} px-4 py-4">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-100">${this.escapeHtml(this.getWorkflowProfileLabel(profile))}</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">${this.escapeHtml(profile.description || '')}</p>
+                  </div>
+                  ${this.renderWorkflowProfileBadge(profile)}
+                </div>
+                <p class="mt-3 text-xs leading-6 text-slate-500">${this.t('workflowProfileProtocolFilesLabel')}: ${this.escapeHtml((profile.minimumProtocolFiles || []).join(', ') || '-')}</p>
+              </article>
+            `).join('') || `<p class="text-sm text-slate-500">${this.t('unknownValue')}</p>`}
           </div>
         </section>
       </div>

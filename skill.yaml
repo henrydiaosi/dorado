@@ -1,14 +1,14 @@
 name: dorado
 title: Dorado
-description: GUI-first Dorado bootstrap and execution skill for Codex and similar AI tools.
-version: 3.0.0
+description: Protocol-shell-first Dorado bootstrap and execution skill for Codex, Claude Code, and similar AI tools.
+version: 3.1.0
 author: Dorado Team
 license: MIT
 
 interface:
   display_name: "Dorado"
-  short_description: "Bootstrap and operate Dorado projects"
-  default_prompt: "Use $dorado to inspect the current directory, launch the dashboard when the project is uninitialized or partial, and continue into the first change workflow."
+  short_description: "Inspect, initialize, and operate Dorado projects"
+  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: if the user intent is simply to initialize the project, still run the mandatory flow, keep protocol shell first, use explicit knowledge backfill later, assume no web template when the project type is unclear, and do not create the first change automatically."
 
 requires_local:
   node: ">=18.0.0"
@@ -19,8 +19,13 @@ protocol:
     - ".skillrc"
     - "SKILL.md"
     - "SKILL.index.json"
+    - "build-index-auto.js"
     - "for-ai/ai-guide.md"
     - "for-ai/execution-protocol.md"
+    - "for-ai/naming-conventions.md"
+    - "for-ai/skill-conventions.md"
+    - "for-ai/workflow-conventions.md"
+    - "for-ai/development-guide.md"
   feature_files:
     - "changes/active/<feature>/proposal.md"
     - "changes/active/<feature>/tasks.md"
@@ -29,18 +34,21 @@ protocol:
   feature_name_format: "kebab-case"
 
 commands:
-  - id: dashboard_start
-    command: "dorado dashboard start [path] [--port <port>] [--no-open]"
-    purpose: "Preferred GUI-first entry for new, partial, or no-active-change projects."
-  - id: init
-    command: "dorado init [root-dir]"
-    purpose: "Initialize a Dorado project from CLI when GUI bootstrap is not preferred."
-  - id: new
-    command: "dorado new <feature-name> [root-dir]"
-    purpose: "Create a new change under changes/active with proposal/tasks/state/verification/review."
   - id: status
     command: "dorado status [project-dir]"
     purpose: "Show project knowledge, execution status, and the recommended next step."
+  - id: init
+    command: "dorado init [root-dir]"
+    purpose: "Initialize the Dorado protocol shell from CLI."
+  - id: docs_generate
+    command: "dorado docs generate [project-dir]"
+    purpose: "Explicitly backfill the project knowledge layer after protocol-shell init without applying business scaffold or bootstrap summary."
+  - id: new
+    command: "dorado new <feature-name> [root-dir]"
+    purpose: "Create a new change under changes/active with proposal/tasks/state/verification/review."
+  - id: dashboard_start
+    command: "dorado dashboard start [path] [--port <port>] [--no-open]"
+    purpose: "Open the inspection dashboard for uninitialized, partial, or actively changing projects."
   - id: docs_status
     command: "dorado docs status [project-dir]"
     purpose: "Show project-doc coverage and missing knowledge docs."
@@ -53,12 +61,6 @@ commands:
   - id: index_build
     command: "dorado index build [project-dir]"
     purpose: "Rebuild the project skill index."
-  - id: skill_status
-    command: "dorado skill status"
-    purpose: "Check whether the Codex-installed dorado skill is present and in sync."
-  - id: skill_install
-    command: "dorado skill install"
-    purpose: "Install or sync the dorado skill into ~/.codex/skills/dorado."
   - id: progress
     command: "dorado progress [changes/active/<feature>]"
     purpose: "Show progress for a single active feature."
@@ -74,6 +76,18 @@ commands:
   - id: workflow_flags
     command: "dorado workflow list-flags"
     purpose: "List supported workflow feature flags."
+  - id: skill_status
+    command: "dorado skill status"
+    purpose: "Check whether the Codex-installed dorado skill is present and in sync."
+  - id: skill_install
+    command: "dorado skill install"
+    purpose: "Install or sync the dorado skill into ~/.codex/skills/dorado."
+  - id: skill_status_claude
+    command: "dorado skill status-claude"
+    purpose: "Check whether the Claude Code-installed dorado skill is present and in sync."
+  - id: skill_install_claude
+    command: "dorado skill install-claude"
+    purpose: "Install or sync the dorado skill into ~/.claude/skills/dorado."
 
 workflow:
   read_order:
@@ -89,8 +103,20 @@ workflow:
     - "activated optional steps must be listed in verification.md.passed_optional_steps"
   preferred_entry:
     - "Run dorado status [path] first for a quick textual summary."
-    - "Run dorado dashboard start [path] when the directory is uninitialized, partially initialized, or has no active change."
-    - "Use the GUI bootstrap for new-project planning from natural-language requirements."
+    - "Run dorado init [path] when the directory is uninitialized."
+    - "Run dorado docs generate [path] when the protocol shell exists but project knowledge is still partial."
+    - "Create the first change explicitly instead of assuming bootstrap will do it."
+
+guardrails:
+  - "Treat init as protocol-shell-only initialization."
+  - "If the user intent is simply to initialize the project or current directory, still trigger the mandatory init flow without asking for a longer prompt."
+  - "When the user asks to initialize, run dorado status first, then dorado init if needed, and verify the protocol-shell files on disk before declaring success."
+  - "Do not assume the project is a web or Next.js project unless the repository or user makes that explicit."
+  - "Do not apply business scaffold during plain init."
+  - "Do not generate docs/project/bootstrap-summary.md during plain init or docs generate."
+  - "Do not create the first change automatically unless the user explicitly asks for a change."
+  - "Treat presets as planning defaults, not as init-time templates."
+  - "Use the dashboard for inspection and navigation, not as the main creation brain."
 
 dashboard:
   start_command: "dorado dashboard start [path] [--port <port>] [--no-open]"
@@ -100,13 +126,31 @@ dashboard:
   behavior:
     - "Detect uninitialized, basic, and full Dorado structures."
     - "Support natural-language project description to prefill planning."
-    - "Generate docs/, layered SKILL.md, for-ai/, and index assets."
-    - "Continue into first-change setup when there is no active change."
+    - "Initialize the protocol shell before any explicit project-knowledge backfill."
+    - "Treat project presets as planning defaults, not as init-time templates."
+    - "Apply business scaffold and write docs/project/bootstrap-summary.md only during explicit bootstrap commit."
+    - "Keep change creation explicit instead of auto-creating the first change by default."
+
+prompt_profiles:
+  minimal: "Initialize this project with dorado. Run dorado status first, then dorado init if needed, and verify the protocol-shell files before saying it is initialized."
+  standard: "Initialize this project with dorado according to current Dorado rules. Even if the user only says initialize the project, run dorado status first, use dorado init for plain initialization, and verify the protocol-shell files on disk."
+  guardrail: "Use dorado for this directory. Default to protocol-shell init first, do not assume a web template, do not apply business scaffold during init, do not create the first change unless explicitly requested, and do not claim initialization is complete until the protocol-shell files are verified on disk."
+  knowledge_backfill: "Use dorado to backfill the project knowledge layer for this directory. Focus on docs, layered skills, and index state. Do not create a change yet."
+  change_creation: "Use dorado to create and advance a change for this requirement. Respect the current project state and do not treat bootstrap as auto-change creation."
 
 usage:
   new_project_flow:
     - "Inspect the target directory."
-    - "Launch dorado dashboard start [path]."
-    - "Describe the new project in natural language."
-    - "Use the GUI bootstrap to generate the project knowledge layer."
-    - "Continue into the first active change setup flow."
+    - "Initialize the protocol shell with dorado init [path]."
+    - "Verify .skillrc, changes/, .dorado/, build-index-auto.js, and the for-ai protocol docs before claiming init is complete."
+    - "Generate the project knowledge layer explicitly with dorado docs generate [path] or dashboard commit."
+    - "Use presets only as planning defaults; scaffold and bootstrap summary still require explicit commit."
+    - "Create the first active change explicitly."
+  prompt_shortcuts:
+    - "initialize this project"
+    - "initialize this directory"
+    - "initialize the current project"
+    - "使用 dorado 初始化项目"
+    - "使用 dorado 初始化这个目录"
+    - "use dorado to initialize this directory"
+    - "use dorado to backfill the project knowledge layer"

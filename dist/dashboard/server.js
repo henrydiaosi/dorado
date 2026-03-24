@@ -17,6 +17,48 @@ const services_1 = require("../services");
 const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
 const ProjectPresets_1 = require("../presets/ProjectPresets");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
+const WORKFLOW_PROFILE_CATALOG = {
+    'minimal-change': {
+        label: 'Minimal Change',
+        description: 'A lightweight protocol for small, low-risk changes.',
+        minimumProtocolFiles: ['state.json', 'tasks.md', 'verification.md'],
+        optionalSteps: ['code_review'],
+        archiveFocus: ['verification', 'tasks completeness'],
+        recommendedModes: ['lite'],
+    },
+    'standard-change': {
+        label: 'Standard Change',
+        description: 'The balanced default profile for most day-to-day changes.',
+        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
+        optionalSteps: ['code_review', 'design_doc', 'plan_doc', 'security_review', 'api_change_doc'],
+        archiveFocus: ['verification', 'skill update', 'index regeneration'],
+        recommendedModes: ['standard', 'full'],
+    },
+    'architecture-change': {
+        label: 'Architecture Change',
+        description: 'A heavier profile for architectural refactors and important decisions.',
+        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
+        optionalSteps: ['design_doc', 'adr', 'db_change_doc', 'code_review'],
+        archiveFocus: ['design decisions', 'ADR alignment', 'verification'],
+        recommendedModes: ['full'],
+    },
+    'public-api-change': {
+        label: 'Public API Change',
+        description: 'A profile for externally visible API or contract changes.',
+        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
+        optionalSteps: ['api_change_doc', 'code_review', 'security_review'],
+        archiveFocus: ['API contract verification', 'compatibility notes'],
+        recommendedModes: ['standard', 'full'],
+    },
+    'security-change': {
+        label: 'Security Change',
+        description: 'A profile for auth, permission, or security-sensitive work.',
+        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
+        optionalSteps: ['security_review', 'code_review'],
+        archiveFocus: ['security review', 'verification evidence'],
+        recommendedModes: ['standard', 'full'],
+    },
+};
 class DashboardServer {
     constructor(config = {}) {
         this.server = null;
@@ -71,6 +113,7 @@ class DashboardServer {
                 apiAreas: preset.apiAreas,
                 designDocs: preset.designDocs,
                 planningDocs: preset.planningDocs,
+                policy: this.getProjectPresetPolicy(),
             }));
             res.json({ presets });
         });
@@ -88,7 +131,7 @@ class DashboardServer {
             try {
                 const payload = req.body;
                 const preview = await this.buildBootstrapPreview(payload);
-                const { projectPresetId, projectName, mode, summary, techStack, modules, apiAreas, designDocs, planningDocs, moduleSkillFiles, moduleApiDocFiles, apiDocFiles, designDocFiles, planningDocFiles, inferredModules, fieldPolicy, structurePolicy, scaffoldPlan, commandPlan, firstChangeSuggestion, assetPlan, usedFallbacks, fieldSources, } = preview;
+                const { projectPresetId, projectName, mode, summary, techStack, modules, apiAreas, designDocs, planningDocs, moduleSkillFiles, moduleApiDocFiles, apiDocFiles, designDocFiles, planningDocFiles, inferredModules, fieldPolicy, structurePolicy, scaffoldPlan, commandPlan, firstChangeSuggestion, assetPlan, presetPolicy, scaffoldPolicy, bootstrapSummaryPolicy, usedFallbacks, fieldSources, } = preview;
                 res.json({
                     plan: {
                         projectPresetId,
@@ -112,6 +155,9 @@ class DashboardServer {
                         commandPlan,
                         firstChangeSuggestion,
                         assetPlan,
+                        presetPolicy,
+                        scaffoldPolicy,
+                        bootstrapSummaryPolicy,
                         usedFallbacks,
                         fieldSources,
                     },
@@ -141,7 +187,7 @@ class DashboardServer {
             }
         });
         router.post('/bootstrap/init', async (req, res) => {
-            await this.handleBootstrapCommit(req, res);
+            await this.handleBootstrapInit(req, res);
         });
         router.post('/bootstrap/commit', async (req, res) => {
             await this.handleBootstrapCommit(req, res);
@@ -194,7 +240,7 @@ class DashboardServer {
         router.get('/execution/status', async (_req, res) => {
             try {
                 await this.ensureInitialized();
-                res.json(await services_1.services.projectService.getExecutionStatus(this.config.projectPath));
+                res.json(await this.loadDashboardExecutionStatus());
             }
             catch (error) {
                 this.handleApiError(res, error);
@@ -227,7 +273,7 @@ class DashboardServer {
         const listChanges = async (_req, res) => {
             try {
                 await this.ensureInitialized();
-                const execution = await this.loadExecutionStatus();
+                const execution = await this.loadDashboardExecutionStatus();
                 res.json(execution.activeChanges);
             }
             catch (error) {
@@ -241,12 +287,20 @@ class DashboardServer {
                 await this.ensureInitialized();
                 const config = await this.loadProjectConfig();
                 const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
+                const defaultProfile = this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(config.mode), 'mode-default', config.mode);
                 res.json({
                     mode: workflow.getMode(),
                     core_steps: workflow.getCoreSteps(),
                     optional_steps: config.workflow?.optional_steps ?? workflow.getConfig().optional_steps,
                     activated_steps: this.getEnabledOptionalSteps(config),
                     supported_flags: config.workflow?.feature_flags.supported ?? workflow.getSupportedFlags(),
+                    defaultProfile,
+                    availableProfiles: this.getWorkflowProfilesForMode(config.mode),
+                    profileDisplayPolicy: {
+                        phase: 'inspection-first',
+                        changeSelectionOwnedBy: 'cli_or_skill',
+                        runtimeModel: 'compatibility_inference_until_profile_runtime_lands',
+                    },
                 });
             }
             catch (error) {
@@ -275,6 +329,10 @@ class DashboardServer {
                     return;
                 }
                 const resolvedPath = this.resolveProjectFilePath(target);
+                if (!this.isPreviewableProjectFile(resolvedPath)) {
+                    this.sendApiError(res, 403, 'file_preview_not_allowed', 'The requested file is outside the dashboard preview allowlist');
+                    return;
+                }
                 const stats = await fs_extra_1.default.stat(resolvedPath);
                 if (!stats.isFile()) {
                     this.sendApiError(res, 400, 'file_path_not_file', 'The requested path is not a file');
@@ -438,6 +496,9 @@ class DashboardServer {
     async initializeProject(mode, payload) {
         return services_1.services.projectService.initializeProject(this.config.projectPath, mode, payload);
     }
+    async initializeProtocolShell(mode, payload) {
+        return services_1.services.projectService.initializeProtocolShellProject(this.config.projectPath, mode, payload);
+    }
     resolveProjectFilePath(targetPath) {
         const projectRoot = path_1.default.resolve(this.config.projectPath);
         const resolvedPath = path_1.default.isAbsolute(targetPath)
@@ -451,6 +512,21 @@ class DashboardServer {
         }
         return resolvedPath;
     }
+    isPreviewableProjectFile(resolvedPath) {
+        const projectRoot = path_1.default.resolve(this.config.projectPath);
+        const relativePath = path_1.default.relative(projectRoot, resolvedPath).replace(/\\/g, '/');
+        const previewablePatterns = [
+            /^SKILL\.md$/,
+            /^SKILL\.index\.json$/,
+            /^for-ai\/.+\.md$/i,
+            /^docs\/.+\.md$/i,
+            /^src\/.+\/SKILL\.md$/i,
+            /^src\/SKILL\.md$/i,
+            /^tests\/.+\/SKILL\.md$/i,
+            /^tests\/SKILL\.md$/i,
+        ];
+        return previewablePatterns.some(pattern => pattern.test(relativePath));
+    }
     async buildBootstrapPreview(payload) {
         if (payload.mode && !this.isValidProjectMode(payload.mode)) {
             throw new Error('Mode must be one of: lite, standard, full');
@@ -462,7 +538,22 @@ class DashboardServer {
         if (validationError) {
             throw new Error(validationError);
         }
-        return services_1.services.projectService.previewBootstrap(this.config.projectPath, mode, payload);
+        const preview = await services_1.services.projectService.previewBootstrap(this.config.projectPath, mode, payload);
+        return {
+            ...preview,
+            presetPolicy: {
+                ...this.getProjectPresetPolicy(),
+                canPlanScaffold: Boolean(preview.scaffoldPlan),
+                canSuggestFirstChange: Boolean(preview.firstChangeSuggestion),
+            },
+            scaffoldPolicy: {
+                previewAvailable: Boolean(preview.scaffoldPlan),
+                createdDuringProtocolInit: false,
+                createdDuringKnowledgeBackfill: false,
+                createdDuringBootstrapCommit: Boolean(preview.scaffoldPlan),
+            },
+            bootstrapSummaryPolicy: this.getBootstrapSummaryPolicy(),
+        };
     }
     inferBootstrapInputFromDescription(payload) {
         const description = payload.description?.trim();
@@ -593,6 +684,43 @@ class DashboardServer {
         const apiSummary = apiAreas.length > 0 ? apiAreas.join(' / ') : 'API areas';
         return `Use a layered project structure with modules ${moduleSummary}, and organize service boundaries around ${apiSummary}.`;
     }
+    async handleBootstrapInit(req, res) {
+        try {
+            const payload = req.body;
+            const { mode } = payload;
+            if (!mode || !this.isValidProjectMode(mode)) {
+                this.sendApiError(res, 400, 'invalid_project_mode', 'Mode must be one of: lite, standard, full');
+                return;
+            }
+            const validationError = this.validateBootstrapPayload(payload);
+            if (validationError) {
+                this.sendApiError(res, 400, 'invalid_bootstrap_payload', validationError);
+                return;
+            }
+            const status = await this.getBootstrapStatus();
+            if (status.initialized && status.structureLevel === 'full') {
+                this.sendApiError(res, 409, 'project_already_initialized', 'Project is already initialized', { status });
+                return;
+            }
+            const result = await this.initializeProtocolShell(mode, payload);
+            res.status(201).json({
+                success: true,
+                message: status.initialized
+                    ? `Refreshed Dorado protocol shell in ${mode} mode`
+                    : `Initialized Dorado protocol shell in ${mode} mode`,
+                result: {
+                    ...result,
+                    createFirstChange: false,
+                    createdFirstChange: null,
+                    firstChangeCreationError: null,
+                },
+                status: await this.getBootstrapStatus(),
+            });
+        }
+        catch (error) {
+            this.handleApiError(res, error);
+        }
+    }
     async handleBootstrapCommit(req, res) {
         try {
             const payload = req.body;
@@ -612,7 +740,7 @@ class DashboardServer {
                 return;
             }
             const result = await this.initializeProject(mode, payload);
-            const shouldCreateFirstChange = payload.createFirstChange !== false;
+            const shouldCreateFirstChange = payload.createFirstChange === true;
             let createdFirstChange = null;
             let firstChangeCreationError = null;
             if (shouldCreateFirstChange && result.firstChangeSuggestion) {
@@ -662,6 +790,24 @@ class DashboardServer {
             affects: suggestion.affects,
             flags: suggestion.flags,
             documentLanguage,
+        };
+    }
+    getProjectPresetPolicy() {
+        return {
+            role: 'planning_defaults',
+            appliesDuringProtocolInit: false,
+            appliesDuringKnowledgeBackfill: true,
+            appliesDuringBootstrapCommit: true,
+            canPlanScaffold: true,
+            canSuggestFirstChange: true,
+        };
+    }
+    getBootstrapSummaryPolicy() {
+        return {
+            path: 'docs/project/bootstrap-summary.md',
+            generatedDuringProtocolInit: false,
+            generatedDuringKnowledgeBackfill: false,
+            generatedDuringBootstrapCommit: true,
         };
     }
     async createFeature(payload) {
@@ -774,11 +920,109 @@ class DashboardServer {
             .filter(([, optionalConfig]) => optionalConfig.enabled)
             .map(([stepName]) => stepName);
     }
+    isWorkflowProfileId(value) {
+        return Boolean(value && value in WORKFLOW_PROFILE_CATALOG);
+    }
+    getModeDefaultWorkflowProfileId(mode) {
+        switch (mode) {
+            case 'lite':
+                return 'minimal-change';
+            case 'standard':
+            case 'full':
+            default:
+                return 'standard-change';
+        }
+    }
+    getWorkflowProfilesForMode(mode) {
+        return Object.keys(WORKFLOW_PROFILE_CATALOG).map(profileId => this.resolveWorkflowProfile(profileId, profileId === this.getModeDefaultWorkflowProfileId(mode) ? 'mode-default' : 'explicit', mode));
+    }
+    resolveWorkflowProfile(profileId, source, mode) {
+        const definition = WORKFLOW_PROFILE_CATALOG[profileId];
+        const reasonBySource = {
+            explicit: 'Shown as an available workflow profile for inspection.',
+            'flag-inference': 'Inferred from the active change flags for compatibility display.',
+            'legacy-file-set': 'Inferred from the existing change protocol file set.',
+            'mode-default': 'Inferred from the current project mode until explicit profile config exists.',
+        };
+        return {
+            id: profileId,
+            label: definition.label,
+            description: definition.description,
+            source,
+            inferred: source !== 'explicit',
+            minimumProtocolFiles: [...definition.minimumProtocolFiles],
+            optionalSteps: [...definition.optionalSteps],
+            archiveFocus: [...definition.archiveFocus],
+            recommendedForMode: definition.recommendedModes.includes(mode),
+            reason: reasonBySource[source],
+        };
+    }
+    inferWorkflowProfileIdFromFlags(flags) {
+        const set = new Set(flags);
+        if (set.has('security_related') || set.has('auth') || set.has('payment')) {
+            return 'security-change';
+        }
+        if (set.has('public_api_change')) {
+            return 'public-api-change';
+        }
+        if (set.has('architecture_change') || set.has('important_decision') || set.has('db_schema_change')) {
+            return 'architecture-change';
+        }
+        return null;
+    }
     async loadProjectSummary() {
         return services_1.services.projectService.getProjectSummary(this.config.projectPath);
     }
     async loadExecutionStatus() {
         return services_1.services.projectService.getExecutionStatus(this.config.projectPath);
+    }
+    async loadDashboardExecutionStatus() {
+        const execution = await this.loadExecutionStatus();
+        const config = await this.loadProjectConfig();
+        const defaultProfile = this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(config.mode), 'mode-default', config.mode);
+        if (execution.activeChanges.length === 0) {
+            return {
+                ...execution,
+                activeChanges: [],
+                defaultProfile,
+            };
+        }
+        const activeChanges = await Promise.all(execution.activeChanges.map(async (change) => {
+            const featureDir = path_1.default.join(this.config.projectPath, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE, change.name);
+            const state = await services_1.services.stateManager.readState(featureDir);
+            const workflowProfile = await this.resolveWorkflowProfileForChange(featureDir, state, change.flags);
+            return {
+                ...change,
+                workflowProfile,
+            };
+        }));
+        return {
+            ...execution,
+            activeChanges,
+            defaultProfile,
+        };
+    }
+    async resolveWorkflowProfileForChange(featureDir, state, flags) {
+        if (this.isWorkflowProfileId(state.workflow_profile_id)) {
+            return this.resolveWorkflowProfile(state.workflow_profile_id, 'explicit', state.mode);
+        }
+        const inferredByFlags = this.inferWorkflowProfileIdFromFlags(flags);
+        if (inferredByFlags) {
+            return this.resolveWorkflowProfile(inferredByFlags, 'flag-inference', state.mode);
+        }
+        const [hasProposal, hasTasks, hasVerification, hasReview] = await Promise.all([
+            services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL)),
+            services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.TASKS)),
+            services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.VERIFICATION)),
+            services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.REVIEW)),
+        ]);
+        if (hasTasks && hasVerification && !hasProposal && !hasReview) {
+            return this.resolveWorkflowProfile('minimal-change', 'legacy-file-set', state.mode);
+        }
+        if (hasProposal && hasTasks && hasVerification && hasReview) {
+            return this.resolveWorkflowProfile('standard-change', 'legacy-file-set', state.mode);
+        }
+        return this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(state.mode), 'mode-default', state.mode);
     }
     calculateProgress(state) {
         const total = state.completed.length + state.pending.length;

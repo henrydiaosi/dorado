@@ -36,7 +36,7 @@ exports.DIRECT_COPY_PROJECT_ASSETS = [
         id: 'project-naming-conventions',
         category: 'conventions',
         description: 'Project-adopted naming conventions copied from the Dorado mother spec.',
-        targetRelativePath: 'docs/project/naming-conventions.md',
+        targetRelativePath: 'for-ai/naming-conventions.md',
         overwritePolicy: 'if_missing',
         localizedSources: {
             'zh-CN': 'assets/project-conventions/zh-CN/naming-conventions.md',
@@ -47,7 +47,7 @@ exports.DIRECT_COPY_PROJECT_ASSETS = [
         id: 'project-skill-conventions',
         category: 'conventions',
         description: 'Project-adopted layered SKILL conventions copied from the Dorado mother spec.',
-        targetRelativePath: 'docs/project/skill-conventions.md',
+        targetRelativePath: 'for-ai/skill-conventions.md',
         overwritePolicy: 'if_missing',
         localizedSources: {
             'zh-CN': 'assets/project-conventions/zh-CN/skill-conventions.md',
@@ -58,7 +58,7 @@ exports.DIRECT_COPY_PROJECT_ASSETS = [
         id: 'project-development-guide',
         category: 'conventions',
         description: 'Project-adopted development guide copied from the Dorado mother spec.',
-        targetRelativePath: 'docs/project/development-guide.md',
+        targetRelativePath: 'for-ai/development-guide.md',
         overwritePolicy: 'if_missing',
         localizedSources: {
             'zh-CN': 'assets/project-conventions/zh-CN/development-guide.md',
@@ -69,7 +69,7 @@ exports.DIRECT_COPY_PROJECT_ASSETS = [
         id: 'project-workflow-conventions',
         category: 'conventions',
         description: 'Project-adopted workflow and change execution conventions copied from the Dorado mother spec.',
-        targetRelativePath: 'docs/project/workflow-conventions.md',
+        targetRelativePath: 'for-ai/workflow-conventions.md',
         overwritePolicy: 'if_missing',
         localizedSources: {
             'zh-CN': 'assets/project-conventions/zh-CN/workflow-conventions.md',

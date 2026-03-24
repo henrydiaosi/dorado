@@ -169,7 +169,7 @@ Dorado CLI v${CLI_VERSION}
 Usage: dorado <command> [options]
 
 Commands:
-  init [root-dir]           Initialize a new Dorado project
+  init [root-dir]           Initialize the Dorado protocol shell
   new <change-name> [root]  Create a new change
   verify [path]             Verify change completion
   progress [path]           Show workflow progress
@@ -178,9 +178,9 @@ Commands:
   batch <action> [path]     Batch operations (export, stats)
   dashboard [action]        Web Dashboard (start, stop, install, build)
                             start [path] [--port <port>] [--no-open]
-  docs [action] [path]      Docs status helpers (status)
+  docs [action] [path]      Docs helpers (status, generate)
   skills [action] [path]    Skills status helpers (status)
-  skill [action] [dir]      Codex skill helpers (status, install)
+  skill [action] [dir]      Skill package helpers (status, install, status-claude, install-claude)
   index [action] [path]     Index helpers (check, build)
   workflow [action]         Workflow configuration (show, list-flags)
   help, -h, --help          Show this help message
@@ -194,9 +194,12 @@ Examples:
   dorado archive ./changes/active/onboarding-flow
   dorado status
   dorado docs status
+  dorado docs generate
   dorado skills status
   dorado skill status
   dorado skill install
+  dorado skill status-claude
+  dorado skill install-claude
   dorado index build
   dorado batch stats
   dorado dashboard start

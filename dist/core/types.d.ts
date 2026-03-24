@@ -33,6 +33,7 @@ export interface FeatureState {
     version: string;
     feature: string;
     mode: ProjectMode;
+    workflow_profile_id?: string;
     status: FeatureStatus;
     current_step: string;
     affects: string[];

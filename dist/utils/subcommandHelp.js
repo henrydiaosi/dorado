@@ -14,8 +14,10 @@ function isHelpAction(action) {
 function getDocsHelpText() {
     return `
 Docs Commands:
-  dorado docs status [path]  - show project docs coverage and missing items
-  dorado docs help           - show docs command help
+  dorado docs status [path]    - show project docs coverage and missing items
+  dorado docs generate [path]  - explicitly backfill the project knowledge layer after protocol-shell init
+                               - does not create business scaffold or docs/project/bootstrap-summary.md
+  dorado docs help             - show docs command help
 `;
 }
 function getSkillsHelpText() {
@@ -27,10 +29,12 @@ Skills Commands:
 }
 function getSkillHelpText() {
     return `
-Codex Skill Commands:
-  dorado skill status [dir]   - inspect installed Codex skill files
-  dorado skill install [dir]  - install or sync the Codex skill
-  dorado skill help           - show skill command help
+Skill Package Commands:
+  dorado skill status [dir]          - inspect installed Codex skill files
+  dorado skill install [dir]         - install or sync the Codex skill
+  dorado skill status-claude [dir]   - inspect installed Claude Code skill files
+  dorado skill install-claude [dir]  - install or sync the Claude Code skill
+  dorado skill help                  - show skill command help
 `;
 }
 function getIndexHelpText() {

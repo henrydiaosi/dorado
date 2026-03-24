@@ -82,14 +82,15 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
     getRecommendedNextSteps(projectPath, structure, execution) {
         if (!structure.initialized) {
             return [
-                `Run "dorado dashboard start ${projectPath}" to launch the GUI bootstrap.`,
-                'Use the bootstrap wizard to initialize .skillrc, changes/, docs/, skills, and index files.',
+                `Run "dorado init ${projectPath}" to initialize the Dorado protocol shell.`,
+                `Or run "dorado dashboard start ${projectPath}" if you want to inspect the directory in GUI first.`,
             ];
         }
         if (structure.level !== 'full') {
             return [
-                `Run "dorado dashboard start ${projectPath}" to complete the project knowledge layer.`,
-                'Fill missing docs, skill files, and index artifacts before relying on the execution workflow.',
+                'The Dorado protocol shell is ready, but the project knowledge layer is still partial.',
+                `Run "dorado docs generate ${projectPath}" to backfill the default project knowledge layer. This still will not apply business scaffold or generate docs/project/bootstrap-summary.md.`,
+                'Use an explicit bootstrap commit flow later if you want preset-driven scaffold output and a recorded bootstrap summary.',
             ];
         }
         if (execution.totalActiveChanges === 0) {

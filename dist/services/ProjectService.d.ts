@@ -72,6 +72,21 @@ export interface ProjectInitializationResult {
     recoveryFilePath: string | null;
     firstChangeSuggestion: ProjectPresetFirstChangeSuggestion | null;
 }
+export interface ProjectKnowledgeGenerationResult {
+    projectName: string;
+    mode: ProjectMode;
+    projectPresetId: string | null;
+    documentLanguage: string;
+    createdFiles: string[];
+    refreshedFiles: string[];
+    skippedFiles: string[];
+    directCopyCreatedFiles: string[];
+    directCopySkippedFiles: string[];
+    hookInstalledFiles: string[];
+    hookSkippedFiles: string[];
+    runtimeGeneratedFiles: string[];
+    firstChangeSuggestion: ProjectPresetFirstChangeSuggestion | null;
+}
 export declare class ProjectService {
     private fileService;
     private configManager;
@@ -83,6 +98,8 @@ export declare class ProjectService {
     private projectScaffoldCommandService;
     constructor(fileService: FileService, configManager: ConfigManager, templateEngine: TemplateEngine, indexBuilder: IndexBuilder, skillParser: SkillParser, projectAssetService: ProjectAssetService, projectScaffoldService: ProjectScaffoldService, projectScaffoldCommandService: ProjectScaffoldCommandService);
     initializeProject(rootDir: string, mode: ProjectMode, input?: ProjectBootstrapInput): Promise<ProjectInitializationResult>;
+    generateProjectKnowledge(rootDir: string, input?: ProjectBootstrapInput): Promise<ProjectKnowledgeGenerationResult>;
+    initializeProtocolShellProject(rootDir: string, mode: ProjectMode, input?: ProjectBootstrapInput): Promise<ProjectInitializationResult>;
     detectProjectStructure(rootDir: string): Promise<ProjectStructureStatus>;
     getProjectSummary(rootDir: string): Promise<ProjectSummary>;
     getProjectAssetStatus(rootDir: string): Promise<ProjectAssetStatus>;
@@ -130,15 +147,27 @@ export declare class ProjectService {
     private buildBootstrapPreview;
     rebuildIndex(rootDir: string): Promise<SkillsStatus['skillIndex']>;
     private getDirectorySkeleton;
+    private getProtocolShellDirectorySkeleton;
+    private getKnowledgeLayerDirectorySkeleton;
+    private getMinimumRuntimeStructureDefinitions;
+    private getProtocolShellRecommendedDefinitions;
+    private getProjectKnowledgeStructureDefinitions;
     private getStructureDefinitions;
     private getDocumentDefinitions;
     private getRootSkillDefinitions;
     private toDocumentStatusItem;
     private toSkillFileInfo;
     private writeIfMissing;
+    private normalizeProjectBootstrap;
+    private writeProjectKnowledgeLayer;
+    private writeGeneratedFile;
+    private isProtocolShellRootSkill;
     private createEmptyScaffoldResult;
-    private getTemplateGeneratedPaths;
+    private applyProjectScaffoldPhase;
+    private getProtocolShellTemplateGeneratedPaths;
+    private getFullBootstrapTemplateGeneratedPaths;
     private getBootstrapAssetPlan;
+    private renderProtocolShellRootSkill;
     private writeBootstrapSummary;
     private renderBootstrapSummary;
     private describeCommandExecutionStatus;

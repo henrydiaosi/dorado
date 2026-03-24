@@ -24,46 +24,9 @@ class ProjectService {
         const config = await this.configManager.createDefaultConfig(mode);
         await this.configManager.saveConfig(rootDir, config);
         await Promise.all(this.getDirectorySkeleton(rootDir).map(dirPath => this.fileService.ensureDir(dirPath)));
-        const projectName = path_1.default.basename(path_1.default.resolve(rootDir));
-        const inferredDefaults = {
-            modules: await this.inferBootstrapModules(rootDir),
-        };
-        const presetDefaults = this.getPresetDefaults(input);
-        const normalized = this.templateEngine.normalizeProjectBootstrapInput(input, projectName, mode, inferredDefaults, presetDefaults);
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.FILE_NAMES.README), this.templateEngine.generateProjectReadmeTemplate(projectName, mode, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateRootSkillTemplate(projectName, mode, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateDocsSkillTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateSrcSkillTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.CORE, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateCoreSkillTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.TESTS, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateTestsSkillTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'overview.md'), this.templateEngine.generateProjectOverviewTemplate(projectName, mode, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'tech-stack.md'), this.templateEngine.generateTechStackTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'architecture.md'), this.templateEngine.generateArchitectureTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'module-map.md'), this.templateEngine.generateModuleMapTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'api-overview.md'), this.templateEngine.generateApiOverviewTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.DESIGN, 'README.md'), this.templateEngine.generateDesignDocsTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PLANNING, 'README.md'), this.templateEngine.generatePlanningDocsTemplate(projectName, normalized));
-        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.API, 'README.md'), this.templateEngine.generateApiDocsTemplate(projectName, normalized));
-        for (const modulePlan of normalized.modulePlans) {
-            await this.fileService.ensureDir(path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.MODULES, modulePlan.name));
-            await this.writeIfMissing(path_1.default.join(rootDir, ...modulePlan.path.split('/')), this.templateEngine.generateModuleSkillTemplate(projectName, modulePlan.displayName, normalized, modulePlan.name));
-        }
-        for (const moduleApiPlan of normalized.moduleApiPlans) {
-            const moduleSlug = moduleApiPlan.name.replace(/^module-/, '');
-            const modulePlan = normalized.modulePlans.find(plan => plan.name === moduleSlug);
-            await this.writeIfMissing(path_1.default.join(rootDir, ...moduleApiPlan.path.split('/')), this.templateEngine.generateModuleApiDocTemplate(projectName, modulePlan?.displayName ?? moduleSlug, normalized, moduleSlug));
-        }
-        for (const apiAreaPlan of normalized.apiAreaPlans) {
-            await this.writeIfMissing(path_1.default.join(rootDir, ...apiAreaPlan.path.split('/')), this.templateEngine.generateApiAreaDocTemplate(projectName, apiAreaPlan.displayName, normalized));
-        }
-        for (const designDocPlan of normalized.designDocPlans) {
-            await this.writeIfMissing(path_1.default.join(rootDir, ...designDocPlan.path.split('/')), this.templateEngine.generateDesignDocTemplate(projectName, designDocPlan.displayName, normalized));
-        }
-        for (const planningDocPlan of normalized.planningDocPlans) {
-            await this.writeIfMissing(path_1.default.join(rootDir, ...planningDocPlan.path.split('/')), this.templateEngine.generatePlanningDocTemplate(projectName, planningDocPlan.displayName, normalized));
-        }
-        const scaffoldResult = (await this.projectScaffoldService.applyScaffold(rootDir, normalized)) ??
-            this.createEmptyScaffoldResult();
+        const normalized = await this.normalizeProjectBootstrap(rootDir, mode, input);
+        await this.writeProjectKnowledgeLayer(rootDir, mode, normalized);
+        const scaffoldResult = await this.applyProjectScaffoldPhase(rootDir, normalized);
         const directCopyResult = await this.projectAssetService.installDirectCopyAssets(rootDir, normalized.documentLanguage);
         const hookResult = await this.projectAssetService.installGitHooks(rootDir, config.hooks);
         const commandPlan = this.projectScaffoldCommandService.getPlan(normalized, scaffoldResult.plan);
@@ -76,7 +39,7 @@ class ProjectService {
         }
         await this.projectAssetService.writeAssetManifest(rootDir, {
             documentLanguage: normalized.documentLanguage,
-            templateGeneratedPaths: this.getTemplateGeneratedPaths(normalized),
+            templateGeneratedPaths: this.getFullBootstrapTemplateGeneratedPaths(normalized),
             runtimeGeneratedPaths: [
                 constants_1.FILE_NAMES.SKILLRC,
                 constants_1.FILE_NAMES.SKILL_INDEX,
@@ -152,6 +115,102 @@ class ProjectService {
             ],
             recoveryFilePath,
             firstChangeSuggestion,
+        };
+    }
+    async generateProjectKnowledge(rootDir, input) {
+        const config = await this.configManager.loadConfig(rootDir);
+        await Promise.all(this.getKnowledgeLayerDirectorySkeleton(rootDir).map(dirPath => this.fileService.ensureDir(dirPath)));
+        const normalized = await this.normalizeProjectBootstrap(rootDir, config.mode, {
+            ...(await this.getBootstrapUpgradePlan(rootDir)),
+            ...(input ?? {}),
+        });
+        const writeSummary = await this.writeProjectKnowledgeLayer(rootDir, config.mode, normalized);
+        const directCopyResult = await this.projectAssetService.installDirectCopyAssets(rootDir, normalized.documentLanguage);
+        const hookResult = await this.projectAssetService.installGitHooks(rootDir, config.hooks);
+        try {
+            await this.indexBuilder.write(rootDir);
+        }
+        catch {
+            await this.indexBuilder.createEmpty(rootDir);
+        }
+        const runtimeGeneratedFiles = [
+            constants_1.FILE_NAMES.SKILLRC,
+            constants_1.FILE_NAMES.SKILL_INDEX,
+            '.dorado/asset-sources.json',
+        ];
+        await this.projectAssetService.writeAssetManifest(rootDir, {
+            documentLanguage: normalized.documentLanguage,
+            templateGeneratedPaths: this.getFullBootstrapTemplateGeneratedPaths(normalized),
+            runtimeGeneratedPaths: runtimeGeneratedFiles,
+        });
+        return {
+            projectName: normalized.projectName,
+            mode: config.mode,
+            projectPresetId: normalized.projectPresetId,
+            documentLanguage: normalized.documentLanguage,
+            createdFiles: writeSummary.created,
+            refreshedFiles: writeSummary.refreshed,
+            skippedFiles: writeSummary.skipped,
+            directCopyCreatedFiles: directCopyResult.created,
+            directCopySkippedFiles: directCopyResult.skipped,
+            hookInstalledFiles: hookResult.installed,
+            hookSkippedFiles: hookResult.skipped,
+            runtimeGeneratedFiles,
+            firstChangeSuggestion: this.getFirstChangeSuggestion(normalized),
+        };
+    }
+    async initializeProtocolShellProject(rootDir, mode, input) {
+        const config = await this.configManager.createDefaultConfig(mode);
+        await this.configManager.saveConfig(rootDir, config);
+        await Promise.all(this.getProtocolShellDirectorySkeleton(rootDir).map(dirPath => this.fileService.ensureDir(dirPath)));
+        const fallbackName = path_1.default.basename(path_1.default.resolve(rootDir));
+        const normalized = this.templateEngine.normalizeProjectBootstrapInput(input, fallbackName, mode);
+        await this.writeIfMissing(path_1.default.join(rootDir, constants_1.FILE_NAMES.SKILL_MD), this.renderProtocolShellRootSkill(normalized.projectName, normalized.documentLanguage, mode));
+        const directCopyResult = await this.projectAssetService.installDirectCopyAssets(rootDir, normalized.documentLanguage);
+        const hookResult = await this.projectAssetService.installGitHooks(rootDir, config.hooks);
+        try {
+            await this.indexBuilder.write(rootDir);
+        }
+        catch {
+            await this.indexBuilder.createEmpty(rootDir);
+        }
+        await this.projectAssetService.writeAssetManifest(rootDir, {
+            documentLanguage: normalized.documentLanguage,
+            templateGeneratedPaths: this.getProtocolShellTemplateGeneratedPaths(),
+            runtimeGeneratedPaths: [
+                constants_1.FILE_NAMES.SKILLRC,
+                constants_1.FILE_NAMES.SKILL_INDEX,
+                '.dorado/asset-sources.json',
+            ],
+        });
+        return {
+            projectName: normalized.projectName,
+            mode,
+            projectPresetId: null,
+            documentLanguage: normalized.documentLanguage,
+            executeScaffoldCommands: false,
+            scaffoldPlan: null,
+            commandPlan: null,
+            commandExecution: {
+                status: 'skipped',
+                steps: [],
+                recoveryFilePath: null,
+            },
+            scaffoldCreatedFiles: [],
+            scaffoldSkippedFiles: [],
+            scaffoldCreatedDirectories: [],
+            scaffoldSkippedDirectories: [],
+            directCopyCreatedFiles: directCopyResult.created,
+            directCopySkippedFiles: directCopyResult.skipped,
+            hookInstalledFiles: hookResult.installed,
+            hookSkippedFiles: hookResult.skipped,
+            runtimeGeneratedFiles: [
+                constants_1.FILE_NAMES.SKILLRC,
+                constants_1.FILE_NAMES.SKILL_INDEX,
+                '.dorado/asset-sources.json',
+            ],
+            recoveryFilePath: null,
+            firstChangeSuggestion: null,
         };
     }
     async detectProjectStructure(rootDir) {
@@ -595,7 +654,6 @@ class ProjectService {
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/architecture.md`,
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/module-map.md`,
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/api-overview.md`,
-                `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/development-guide.md`,
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.DESIGN}/README.md`,
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PLANNING}/README.md`,
                 `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.API}/README.md`,
@@ -635,7 +693,27 @@ class ProjectService {
             path_1.default.join(rootDir, constants_1.DIR_NAMES.FOR_AI),
         ];
     }
-    getStructureDefinitions() {
+    getProtocolShellDirectorySkeleton(rootDir) {
+        return [
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ARCHIVED),
+            path_1.default.join(rootDir, '.dorado'),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.FOR_AI),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS),
+        ];
+    }
+    getKnowledgeLayerDirectorySkeleton(rootDir) {
+        return [
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.DESIGN),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PLANNING),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.API),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.CORE),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.MODULES),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.TESTS),
+        ];
+    }
+    getMinimumRuntimeStructureDefinitions() {
         return [
             { key: constants_1.FILE_NAMES.SKILLRC, pathSegments: [constants_1.FILE_NAMES.SKILLRC], required: true, category: 'core' },
             {
@@ -651,107 +729,82 @@ class ProjectService {
                 category: 'core',
             },
             { key: '.dorado', pathSegments: ['.dorado'], required: true, category: 'core' },
-            { key: constants_1.FILE_NAMES.SKILL_MD, pathSegments: [constants_1.FILE_NAMES.SKILL_MD] },
-            { key: constants_1.FILE_NAMES.SKILL_INDEX, pathSegments: [constants_1.FILE_NAMES.SKILL_INDEX] },
-            { key: constants_1.FILE_NAMES.BUILD_INDEX_SCRIPT, pathSegments: [constants_1.FILE_NAMES.BUILD_INDEX_SCRIPT] },
-            { key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.FILE_NAMES.SKILL_MD] },
-            { key: `${constants_1.DIR_NAMES.SRC}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.SRC, constants_1.FILE_NAMES.SKILL_MD] },
-            { key: `${constants_1.DIR_NAMES.TESTS}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.TESTS, constants_1.FILE_NAMES.SKILL_MD] },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/bootstrap-summary.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'bootstrap-summary.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/overview.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'overview.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/development-guide.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'development-guide.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/naming-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'naming-conventions.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/skill-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'skill-conventions.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/workflow-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'workflow-conventions.md'],
-            },
+        ];
+    }
+    getProtocolShellRecommendedDefinitions() {
+        return [
+            { key: constants_1.FILE_NAMES.SKILL_MD, pathSegments: [constants_1.FILE_NAMES.SKILL_MD], category: 'core' },
+            { key: constants_1.FILE_NAMES.SKILL_INDEX, pathSegments: [constants_1.FILE_NAMES.SKILL_INDEX], category: 'core' },
+            { key: constants_1.FILE_NAMES.BUILD_INDEX_SCRIPT, pathSegments: [constants_1.FILE_NAMES.BUILD_INDEX_SCRIPT], category: 'core' },
+            { key: constants_1.DIR_NAMES.DOCS, pathSegments: [constants_1.DIR_NAMES.DOCS], category: 'knowledge' },
             {
                 key: `${constants_1.DIR_NAMES.FOR_AI}/${constants_1.FILE_NAMES.AI_GUIDE}`,
                 pathSegments: [constants_1.DIR_NAMES.FOR_AI, constants_1.FILE_NAMES.AI_GUIDE],
+                category: 'core',
             },
             {
                 key: `${constants_1.DIR_NAMES.FOR_AI}/${constants_1.FILE_NAMES.EXECUTION_PROTOCOL}`,
                 pathSegments: [constants_1.DIR_NAMES.FOR_AI, constants_1.FILE_NAMES.EXECUTION_PROTOCOL],
+                category: 'core',
+            },
+            {
+                key: `${constants_1.DIR_NAMES.FOR_AI}/naming-conventions.md`,
+                pathSegments: [constants_1.DIR_NAMES.FOR_AI, 'naming-conventions.md'],
+                category: 'core',
+            },
+            {
+                key: `${constants_1.DIR_NAMES.FOR_AI}/skill-conventions.md`,
+                pathSegments: [constants_1.DIR_NAMES.FOR_AI, 'skill-conventions.md'],
+                category: 'core',
+            },
+            {
+                key: `${constants_1.DIR_NAMES.FOR_AI}/workflow-conventions.md`,
+                pathSegments: [constants_1.DIR_NAMES.FOR_AI, 'workflow-conventions.md'],
+                category: 'core',
+            },
+            {
+                key: `${constants_1.DIR_NAMES.FOR_AI}/development-guide.md`,
+                pathSegments: [constants_1.DIR_NAMES.FOR_AI, 'development-guide.md'],
+                category: 'core',
             },
         ];
     }
-    getDocumentDefinitions() {
+    getProjectKnowledgeStructureDefinitions() {
         return [
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/bootstrap-summary.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'bootstrap-summary.md'],
-            },
             {
                 key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/overview.md`,
                 pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'overview.md'],
-                required: true,
             },
             {
                 key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/tech-stack.md`,
                 pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'tech-stack.md'],
-                required: true,
             },
             {
                 key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/architecture.md`,
                 pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'architecture.md'],
-                required: true,
             },
             {
                 key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/module-map.md`,
                 pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'module-map.md'],
-                required: true,
             },
             {
                 key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/api-overview.md`,
                 pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'api-overview.md'],
-                required: true,
             },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/development-guide.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'development-guide.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/naming-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'naming-conventions.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/skill-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'skill-conventions.md'],
-            },
-            {
-                key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PROJECT}/workflow-conventions.md`,
-                pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'workflow-conventions.md'],
-            },
-            { key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.FILE_NAMES.SKILL_MD] },
         ];
     }
-    getRootSkillDefinitions() {
+    getStructureDefinitions() {
         return [
-            { key: constants_1.FILE_NAMES.SKILL_MD, pathSegments: [constants_1.FILE_NAMES.SKILL_MD] },
-            { key: `${constants_1.DIR_NAMES.DOCS}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.DOCS, constants_1.FILE_NAMES.SKILL_MD] },
-            { key: `${constants_1.DIR_NAMES.SRC}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.SRC, constants_1.FILE_NAMES.SKILL_MD] },
-            {
-                key: `${constants_1.DIR_NAMES.SRC}/${constants_1.DIR_NAMES.CORE}/${constants_1.FILE_NAMES.SKILL_MD}`,
-                pathSegments: [constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.CORE, constants_1.FILE_NAMES.SKILL_MD],
-            },
-            { key: `${constants_1.DIR_NAMES.TESTS}/${constants_1.FILE_NAMES.SKILL_MD}`, pathSegments: [constants_1.DIR_NAMES.TESTS, constants_1.FILE_NAMES.SKILL_MD] },
+            ...this.getMinimumRuntimeStructureDefinitions(),
+            ...this.getProtocolShellRecommendedDefinitions(),
+            ...this.getProjectKnowledgeStructureDefinitions(),
         ];
+    }
+    getDocumentDefinitions() {
+        return this.getProjectKnowledgeStructureDefinitions();
+    }
+    getRootSkillDefinitions() {
+        return [{ key: constants_1.FILE_NAMES.SKILL_MD, pathSegments: [constants_1.FILE_NAMES.SKILL_MD] }];
     }
     async toDocumentStatusItem(rootDir, definition) {
         const filePath = path_1.default.join(rootDir, ...definition.pathSegments);
@@ -808,6 +861,82 @@ class ProjectService {
             await this.fileService.writeFile(filePath, content);
         }
     }
+    async normalizeProjectBootstrap(rootDir, mode, input) {
+        const projectName = path_1.default.basename(path_1.default.resolve(rootDir));
+        const inferredDefaults = {
+            modules: await this.inferBootstrapModules(rootDir),
+        };
+        const presetDefaults = this.getPresetDefaults(input);
+        return this.templateEngine.normalizeProjectBootstrapInput(input, projectName, mode, inferredDefaults, presetDefaults);
+    }
+    async writeProjectKnowledgeLayer(rootDir, mode, normalized) {
+        const result = {
+            created: [],
+            refreshed: [],
+            skipped: [],
+        };
+        const projectName = normalized.projectName;
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.FILE_NAMES.README), this.templateEngine.generateProjectReadmeTemplate(projectName, mode, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateRootSkillTemplate(projectName, mode, normalized), result, { overwriteProtocolShellRootSkill: true });
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateDocsSkillTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateSrcSkillTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.CORE, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateCoreSkillTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.TESTS, constants_1.FILE_NAMES.SKILL_MD), this.templateEngine.generateTestsSkillTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'overview.md'), this.templateEngine.generateProjectOverviewTemplate(projectName, mode, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'tech-stack.md'), this.templateEngine.generateTechStackTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'architecture.md'), this.templateEngine.generateArchitectureTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'module-map.md'), this.templateEngine.generateModuleMapTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'api-overview.md'), this.templateEngine.generateApiOverviewTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.DESIGN, 'README.md'), this.templateEngine.generateDesignDocsTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PLANNING, 'README.md'), this.templateEngine.generatePlanningDocsTemplate(projectName, normalized), result);
+        await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.API, 'README.md'), this.templateEngine.generateApiDocsTemplate(projectName, normalized), result);
+        for (const modulePlan of normalized.modulePlans) {
+            await this.fileService.ensureDir(path_1.default.join(rootDir, constants_1.DIR_NAMES.SRC, constants_1.DIR_NAMES.MODULES, modulePlan.name));
+            await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, ...modulePlan.path.split('/')), this.templateEngine.generateModuleSkillTemplate(projectName, modulePlan.displayName, normalized, modulePlan.name), result);
+        }
+        for (const moduleApiPlan of normalized.moduleApiPlans) {
+            const moduleSlug = moduleApiPlan.name.replace(/^module-/, '');
+            const modulePlan = normalized.modulePlans.find(plan => plan.name === moduleSlug);
+            await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, ...moduleApiPlan.path.split('/')), this.templateEngine.generateModuleApiDocTemplate(projectName, modulePlan?.displayName ?? moduleSlug, normalized, moduleSlug), result);
+        }
+        for (const apiAreaPlan of normalized.apiAreaPlans) {
+            await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, ...apiAreaPlan.path.split('/')), this.templateEngine.generateApiAreaDocTemplate(projectName, apiAreaPlan.displayName, normalized), result);
+        }
+        for (const designDocPlan of normalized.designDocPlans) {
+            await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, ...designDocPlan.path.split('/')), this.templateEngine.generateDesignDocTemplate(projectName, designDocPlan.displayName, normalized), result);
+        }
+        for (const planningDocPlan of normalized.planningDocPlans) {
+            await this.writeGeneratedFile(rootDir, path_1.default.join(rootDir, ...planningDocPlan.path.split('/')), this.templateEngine.generatePlanningDocTemplate(projectName, planningDocPlan.displayName, normalized), result);
+        }
+        return result;
+    }
+    async writeGeneratedFile(rootDir, filePath, content, result, options = {}) {
+        const relativePath = this.toRelativePath(rootDir, filePath);
+        const exists = await this.fileService.exists(filePath);
+        const shouldOverwrite = exists &&
+            options.overwriteProtocolShellRootSkill === true &&
+            (await this.isProtocolShellRootSkill(filePath));
+        if (!exists || shouldOverwrite) {
+            await this.fileService.writeFile(filePath, content);
+            if (shouldOverwrite) {
+                result.refreshed.push(relativePath);
+            }
+            else {
+                result.created.push(relativePath);
+            }
+            return;
+        }
+        result.skipped.push(relativePath);
+    }
+    async isProtocolShellRootSkill(filePath) {
+        if (!(await this.fileService.exists(filePath))) {
+            return false;
+        }
+        const content = await this.fileService.readFile(filePath);
+        return (content.includes('Layer: protocol shell') ||
+            content.includes('协议壳') ||
+            content.includes('project knowledge: not generated yet'));
+    }
     createEmptyScaffoldResult() {
         return {
             plan: null,
@@ -817,7 +946,16 @@ class ProjectService {
             skippedFiles: [],
         };
     }
-    getTemplateGeneratedPaths(normalized) {
+    async applyProjectScaffoldPhase(rootDir, normalized) {
+        return ((await this.projectScaffoldService.applyScaffold(rootDir, normalized)) ??
+            this.createEmptyScaffoldResult());
+    }
+    getProtocolShellTemplateGeneratedPaths() {
+        return [
+            constants_1.FILE_NAMES.SKILL_MD,
+        ];
+    }
+    getFullBootstrapTemplateGeneratedPaths(normalized) {
         return [
             constants_1.FILE_NAMES.README,
             constants_1.FILE_NAMES.SKILL_MD,
@@ -833,7 +971,6 @@ class ProjectService {
             `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.DESIGN}/README.md`,
             `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.PLANNING}/README.md`,
             `${constants_1.DIR_NAMES.DOCS}/${constants_1.DIR_NAMES.API}/README.md`,
-            ...this.projectScaffoldService.getGeneratedPaths(normalized),
             ...normalized.modulePlans.map(plan => plan.path),
             ...normalized.moduleApiPlans.map(plan => plan.path),
             ...normalized.apiAreaPlans.map(plan => plan.path),
@@ -845,7 +982,7 @@ class ProjectService {
         const staticPlan = this.projectAssetService.getAssetPlan(documentLanguage);
         return {
             directCopyFiles: staticPlan.directCopyFiles,
-            templateGeneratedFiles: this.getTemplateGeneratedPaths(normalized),
+            templateGeneratedFiles: this.getFullBootstrapTemplateGeneratedPaths(normalized),
             runtimeGeneratedFiles: [
                 constants_1.FILE_NAMES.SKILLRC,
                 constants_1.FILE_NAMES.SKILL_INDEX,
@@ -854,6 +991,69 @@ class ProjectService {
             ],
             localizedCopySources: staticPlan.localizedCopySources,
         };
+    }
+    renderProtocolShellRootSkill(projectName, documentLanguage, mode) {
+        const isEnglish = documentLanguage === 'en-US';
+        const title = isEnglish ? `${projectName} Protocol Shell` : `${projectName} 协议壳`;
+        const body = isEnglish
+            ? `# ${projectName}
+
+> Layer: protocol shell
+
+## Current State
+
+- Project: ${projectName}
+- Mode: ${mode}
+- Status: Dorado protocol shell initialized
+- Project knowledge: not generated yet
+
+## Read First
+
+- [AI guide](for-ai/ai-guide.md)
+- [Execution protocol](for-ai/execution-protocol.md)
+- [Naming conventions](for-ai/naming-conventions.md)
+- [Skill conventions](for-ai/skill-conventions.md)
+- [Workflow conventions](for-ai/workflow-conventions.md)
+- [Development guide](for-ai/development-guide.md)
+
+## Notes
+
+- This repository currently contains only the Dorado protocol shell.
+- Project docs, source structure, tests, and business scaffold should be generated later through explicit skills or commands.
+- Active changes live under \`changes/active/<change>\`.`
+            : `# ${projectName}
+
+> 层级：协议壳
+
+## 当前状态
+
+- 项目：${projectName}
+- 模式：${mode}
+- 状态：已完成 Dorado 协议壳初始化
+- 项目知识：尚未生成
+
+## 优先阅读
+
+- [AI 指南](for-ai/ai-guide.md)
+- [执行协议](for-ai/execution-protocol.md)
+- [命名规范](for-ai/naming-conventions.md)
+- [SKILL 规范](for-ai/skill-conventions.md)
+- [workflow 规范](for-ai/workflow-conventions.md)
+- [开发指南](for-ai/development-guide.md)
+
+## 说明
+
+- 当前仓库只完成了 Dorado 协议壳初始化。
+- 项目 docs、源码结构、测试结构和业务 scaffold 应由后续显式技能或命令逐步生成。
+- 活跃变更位于 \`changes/active/<change>\`。`;
+        return `---
+name: ${projectName}
+title: ${title}
+tags: [dorado, protocol-shell, ${mode}]
+---
+
+${body}
+`;
     }
     async writeBootstrapSummary(rootDir, input) {
         const filePath = path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT, 'bootstrap-summary.md');
@@ -1049,8 +1249,8 @@ ${formatSuggestion()}
         if (missingSkillFiles.length > 0) {
             suggestions.push({
                 code: 'complete_skill_hierarchy',
-                title: 'Complete layered skill files',
-                description: 'Generate or restore missing root/docs/src/tests skill files so AI tooling can navigate the project knowledge layer.',
+                title: 'Restore protocol skill entrypoints',
+                description: 'Add the missing root SKILL entrypoint so agents can discover the protocol shell and project guidance.',
                 paths: missingSkillFiles.map(item => item.path),
             });
         }
