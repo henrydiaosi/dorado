@@ -1,26 +1,26 @@
-# Skills Installation
+﻿# Skills 安装说明
 
 ## Codex
 
-Check status:
+检查状态：
 
 ```bash
 dorado skill status
 ```
 
-Install or sync:
+安装或同步：
 
 ```bash
 dorado skill install
 ```
 
-Default location:
+默认目录：
 
 ```text
 ~/.codex/skills/
 ```
 
-Installed skill suite:
+当前安装的 skill 套件：
 
 - `dorado`
 - `dorado-init`
@@ -30,32 +30,32 @@ Installed skill suite:
 - `dorado-verify`
 - `dorado-archive`
 - `dorado-finalize`
-- `dorado-cli` legacy compatibility alias
+- `dorado-cli` 兼容别名
 
 ## Claude Code
 
-Check status:
+检查状态：
 
 ```bash
 dorado skill status-claude
 ```
 
-Install or sync:
+安装或同步：
 
 ```bash
 dorado skill install-claude
 ```
 
-Default location:
+默认目录：
 
 ```text
 ~/.claude/skills/
 ```
 
-The installed skill suite matches the Codex set.
+安装的 skill 套件与 Codex 保持一致。
 
-## Prompt Naming
+## 提示词命名
 
-Prefer `$dorado` in new prompts.
+新的提示词优先使用 `$dorado`。
 
-Use `$dorado-cli` only when older automation or habits still reference the legacy name.
+`$dorado-cli` 只作为旧提示词或旧自动化的兼容别名保留。

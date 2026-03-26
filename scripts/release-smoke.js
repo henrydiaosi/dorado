@@ -39,7 +39,7 @@ async function main() {
     console.log(`[release:smoke] using temp dir: ${tempDir}`);
 
     let output = run('node', [cliPath, '--help']);
-    assertContains(output, 'Dorado CLI v0.2.0', 'root help');
+    assertContains(output, 'Dorado CLI v0.5.0', 'root help');
 
     output = run('node', [cliPath, 'dashboard', '--help']);
     assertContains(output, 'dorado dashboard start', 'dashboard help');
@@ -60,10 +60,10 @@ async function main() {
     assertContains(output, 'dorado batch stats', 'batch help');
 
     output = run('node', [cliPath, 'skill', 'install', tempSkillDir]);
-    assertContains(output, 'Installed dorado Codex skill', 'skill install output');
+    assertContains(output, 'Installed dorado Codex skill suite', 'skill install output');
 
     output = run('node', [cliPath, 'skill', 'status', tempSkillDir]);
-    assertContains(output, 'Codex Skill Status', 'skill status output');
+    assertContains(output, 'Codex Skill Suite Status', 'skill status output');
     assertContains(output, 'agents/openai.yaml: present', 'skill metadata output');
     assertContains(output, 'In sync: yes', 'skill sync output');
 
@@ -110,12 +110,17 @@ async function main() {
       'do not create the first change automatically',
       'installed openai.yaml'
     );
+    assertContains(
+      await fs.readFile(path.join(tempSkillDir, 'dorado-verify', 'skill.yaml'), 'utf8'),
+      'name: dorado-verify',
+      'installed verify skill.yaml'
+    );
 
     output = run('node', [cliPath, 'skill', 'install-claude', tempClaudeSkillDir]);
-    assertContains(output, 'Installed dorado Claude Code skill', 'claude skill install output');
+    assertContains(output, 'Installed dorado Claude Code skill suite', 'claude skill install output');
 
     output = run('node', [cliPath, 'skill', 'status-claude', tempClaudeSkillDir]);
-    assertContains(output, 'Claude Code Skill Status', 'claude skill status output');
+    assertContains(output, 'Claude Code Skill Suite Status', 'claude skill status output');
     assertContains(output, 'SKILL.md: present', 'claude skill file output');
     assertContains(output, 'In sync: yes', 'claude skill sync output');
 
@@ -126,7 +131,7 @@ async function main() {
     assertContains(installedClaudeSkillMd, 'name: dorado', 'installed Claude SKILL.md');
     assertContains(
       installedClaudeSkillMd,
-      'description: Protocol-shell-first Dorado workflow for Claude Code.',
+      'description: Protocol-shell-first Dorado workflow for initialization, project knowledge backfill, change execution, verification, and archive readiness.',
       'installed Claude SKILL.md'
     );
     assertContains(
@@ -141,6 +146,12 @@ async function main() {
     );
     if (await fs.pathExists(path.join(tempClaudeSkillDir, 'skill.yaml'))) {
       throw new Error('Claude skill package should not include skill.yaml');
+    }
+    if (!(await fs.pathExists(path.join(tempClaudeSkillDir, 'dorado-init', 'SKILL.md')))) {
+      throw new Error('Claude skill suite should include dorado-init');
+    }
+    if (!(await fs.pathExists(path.join(tempClaudeSkillDir, 'dorado-finalize', 'SKILL.md')))) {
+      throw new Error('Claude skill suite should include dorado-finalize');
     }
 
     output = run('node', [cliPath, 'init', tempDir]);
@@ -160,6 +171,31 @@ async function main() {
 
     output = run('node', [cliPath, 'new', 'release-smoke', tempDir]);
     assertContains(output, 'Change release-smoke created', 'new change output');
+
+    const featureDir = path.join(tempDir, 'changes', 'active', 'release-smoke');
+    const statePath = path.join(featureDir, 'state.json');
+    const tasksPath = path.join(featureDir, 'tasks.md');
+    const verificationPath = path.join(featureDir, 'verification.md');
+    const state = await fs.readJson(statePath);
+    state.status = 'verifying';
+    state.current_step = 'verification';
+    state.completed = ['proposal_complete', 'tasks_complete', 'implementation_complete'];
+    state.pending = ['skill_updated', 'index_regenerated', 'tests_passed', 'verification_passed', 'archived'];
+    state.blocked_by = [];
+    await fs.writeJson(statePath, state, { spaces: 2 });
+    await fs.writeFile(
+      tasksPath,
+      ['---', 'feature: release-smoke', 'created: 2026-03-25', 'optional_steps: []', '---', '', '## Tasks', '', '- [x] Done', ''].join('\n'),
+      'utf8'
+    );
+    await fs.writeFile(
+      verificationPath,
+      ['---', 'feature: release-smoke', 'created: 2026-03-25', 'status: verifying', 'optional_steps: []', 'passed_optional_steps: []', '---', '', '## Verification', '', '- [x] build passed', '- [x] test passed', ''].join('\n'),
+      'utf8'
+    );
+
+    output = run('node', [cliPath, 'finalize', featureDir]);
+    assertContains(output, 'Finalize completed: verification passed and change archived', 'finalize output');
 
     console.log('[release:smoke] all checks passed');
   } finally {

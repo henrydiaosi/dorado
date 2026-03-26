@@ -45,6 +45,7 @@ export declare class DashboardServer {
     private resolveWorkflowProfileForChange;
     private calculateProgress;
     private executeDorado;
+    private resolveCliEntryPath;
     start(): Promise<void>;
     stop(): Promise<void>;
     private openBrowser;

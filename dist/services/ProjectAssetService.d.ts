@@ -35,6 +35,7 @@ export declare class ProjectAssetService {
     private resolveStaticSourceHint;
     private normalizePaths;
     private getPackageRoot;
+    private isDoradoManagedHook;
 }
 export declare const createProjectAssetService: (fileService: FileService) => ProjectAssetService;
 export {};

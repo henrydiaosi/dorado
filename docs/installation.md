@@ -1,57 +1,36 @@
-# 安装使用文档
+# Installation
 
-## 环境要求
+## Requirements
 
-- Node.js 18+
-- npm 8+
+- Node.js `>= 18`
+- npm `>= 8`
 
-## 本地安装
+## Install From This Repository
 
-在当前仓库目录执行：
+Run inside the Dorado release repository:
 
 ```bash
 npm install
 npm install -g .
 ```
 
-安装完成后检查：
+## Verify
 
 ```bash
 dorado --version
 dorado --help
 ```
 
-## Skills 安装
+## Optional Validation
 
-Skills 的安装和同步说明已单独整理到：
-
-- [skills-installation.md](skills-installation.md)
-
-## 常用命令
+If you want to verify the packaged release behavior before using it:
 
 ```bash
-dorado status [path]
-dorado init [path]
-dorado docs generate [path]
-dorado new <change-name> [path]
-dorado progress [changes/active/<change>]
-dorado verify [changes/active/<change>]
-dorado archive [changes/active/<change>]
-dorado dashboard start [path] [--port <port>] [--no-open]
+npm run release:smoke
 ```
 
-## 升级当前发布仓安装
+## Notes
 
-如果你已经在本地安装过旧版本，进入当前仓库后重新执行：
-
-```bash
-npm install
-npm install -g .
-```
-
-然后重新同步本地 skills：
-
-```bash
-dorado skill install
-dorado skill install-claude
-```
+- `npm install` installs the local runtime dependencies
+- `npm install -g .` makes the current release available as the global `dorado` command
+- this repository ships the release assets and public docs, not the development source workflow

@@ -9,6 +9,8 @@ const gray_matter_1 = __importDefault(require("gray-matter"));
 const path_1 = __importDefault(require("path"));
 const constants_1 = require("../core/constants");
 const ProjectPresets_1 = require("../presets/ProjectPresets");
+const ArchiveGate_1 = require("../workflow/ArchiveGate");
+const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
 class ProjectService {
     constructor(fileService, configManager, templateEngine, indexBuilder, skillParser, projectAssetService, projectScaffoldService, projectScaffoldCommandService) {
         this.fileService = fileService;
@@ -390,14 +392,38 @@ class ProjectService {
         };
     }
     async getExecutionStatus(rootDir) {
+        const report = await this.getActiveChangeStatusReport(rootDir);
+        return {
+            totalActiveChanges: report.totalActiveChanges,
+            byStatus: report.changes.reduce((result, change) => {
+                result[change.status] = (result[change.status] ?? 0) + 1;
+                return result;
+            }, {}),
+            activeChanges: report.changes.map(change => ({
+                name: change.name,
+                status: change.status,
+                progress: change.progress,
+                currentStep: change.currentStep,
+                flags: change.flags,
+                description: change.description,
+            })),
+        };
+    }
+    async getActiveChangeStatusReport(rootDir) {
         const featuresDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE);
         if (!(await this.fileService.exists(featuresDir))) {
             return {
                 totalActiveChanges: 0,
-                byStatus: {},
-                activeChanges: [],
+                totals: {
+                    pass: 0,
+                    warn: 0,
+                    fail: 0,
+                },
+                changes: [],
             };
         }
+        const config = await this.configManager.loadConfig(rootDir);
+        const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
         const entries = await fs_extra_1.default.readdir(featuresDir, { withFileTypes: true });
         const activeChanges = [];
         for (const entry of entries) {
@@ -405,37 +431,30 @@ class ProjectService {
                 continue;
             }
             const featureDir = path_1.default.join(featuresDir, entry.name);
-            const statePath = path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE);
-            if (!(await this.fileService.exists(statePath))) {
-                continue;
+            const change = await this.buildActiveChangeStatusItem(rootDir, featureDir, workflow);
+            if (change) {
+                activeChanges.push(change);
             }
-            const state = await this.fileService.readJSON(statePath);
-            const proposalPath = path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL);
-            let flags = [];
-            let description = 'No description yet';
-            if (await this.fileService.exists(proposalPath)) {
-                const proposal = (0, gray_matter_1.default)(await this.fileService.readFile(proposalPath));
-                flags = Array.isArray(proposal.data.flags) ? proposal.data.flags : [];
-                description = this.extractDescription(proposal.content);
-            }
-            activeChanges.push({
-                name: state.feature,
-                status: state.status,
-                progress: this.calculateProgress(state),
-                currentStep: state.current_step,
-                flags,
-                description,
-            });
-        }
-        const byStatus = {};
-        for (const change of activeChanges) {
-            byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
         }
         return {
             totalActiveChanges: activeChanges.length,
-            byStatus,
-            activeChanges: activeChanges.sort((left, right) => left.name.localeCompare(right.name)),
+            totals: activeChanges.reduce((result, change) => {
+                result[change.summaryStatus] += 1;
+                return result;
+            }, { pass: 0, warn: 0, fail: 0 }),
+            changes: activeChanges.sort((left, right) => left.name.localeCompare(right.name)),
         };
+    }
+    async getActiveChangeStatusItem(featurePath) {
+        const resolvedFeaturePath = path_1.default.resolve(featurePath);
+        const rootDir = path_1.default.resolve(resolvedFeaturePath, '..', '..', '..');
+        const config = await this.configManager.loadConfig(rootDir);
+        const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
+        const item = await this.buildActiveChangeStatusItem(rootDir, resolvedFeaturePath, workflow);
+        if (!item) {
+            throw new Error('Change state file not found.');
+        }
+        return item;
     }
     async getFeatureProjectContext(rootDir, affects = []) {
         const affectSlugs = affects
@@ -1189,6 +1208,178 @@ ${formatSuggestion()}
             .filter(Boolean)
             .filter(line => !line.startsWith('#'));
         return lines[0] || 'No description yet';
+    }
+    async buildActiveChangeStatusItem(rootDir, featureDir, workflow) {
+        const statePath = path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE);
+        if (!(await this.fileService.exists(statePath))) {
+            return null;
+        }
+        const proposalPath = path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL);
+        const tasksPath = path_1.default.join(featureDir, constants_1.FILE_NAMES.TASKS);
+        const verificationPath = path_1.default.join(featureDir, constants_1.FILE_NAMES.VERIFICATION);
+        const [state, proposalExists, tasksExists, verificationExists] = await Promise.all([
+            this.fileService.readJSON(statePath),
+            this.fileService.exists(proposalPath),
+            this.fileService.exists(tasksPath),
+            this.fileService.exists(verificationPath),
+        ]);
+        let flags = [];
+        let description = 'No description yet';
+        let activatedSteps = [];
+        const checks = [
+            {
+                name: 'proposal.md',
+                status: proposalExists ? 'pass' : 'fail',
+                message: proposalExists ? 'Proposal file exists' : 'proposal.md is missing',
+            },
+            {
+                name: 'tasks.md',
+                status: tasksExists ? 'pass' : 'fail',
+                message: tasksExists ? 'Tasks file exists' : 'tasks.md is missing',
+            },
+            {
+                name: 'verification.md',
+                status: verificationExists ? 'pass' : 'fail',
+                message: verificationExists
+                    ? 'Verification file exists'
+                    : 'verification.md is missing',
+            },
+        ];
+        if (proposalExists) {
+            const proposal = (0, gray_matter_1.default)(await this.fileService.readFile(proposalPath));
+            flags = Array.isArray(proposal.data.flags) ? proposal.data.flags : [];
+            description = this.extractDescription(proposal.content);
+            activatedSteps = workflow.getActivatedSteps(flags);
+            const validation = workflow.validateFlags(flags);
+            checks.push({
+                name: 'proposal.flags',
+                status: 'pass',
+                message: activatedSteps.length > 0
+                    ? `Activated optional steps: ${activatedSteps.join(', ')}`
+                    : 'No optional steps activated',
+            });
+            if (validation.unsupported.length > 0) {
+                checks.push({
+                    name: 'proposal.unsupported_flags',
+                    status: 'warn',
+                    message: `Unsupported flags: ${validation.unsupported.join(', ')}`,
+                });
+            }
+        }
+        const tasksAnalysis = tasksExists
+            ? await this.analyzeChecklistDocument(tasksPath, 'tasks.md', activatedSteps)
+            : null;
+        if (tasksAnalysis) {
+            checks.push(...tasksAnalysis.checks);
+        }
+        const verificationAnalysis = verificationExists
+            ? await this.analyzeVerificationDocument(verificationPath, activatedSteps)
+            : null;
+        if (verificationAnalysis) {
+            checks.push(...verificationAnalysis.checks);
+        }
+        checks.push({
+            name: 'state.json',
+            status: 'pass',
+            message: `Status is ${state.status}, current step is ${state.current_step}`,
+        });
+        const archiveResult = await ArchiveGate_1.archiveGate.checkArchiveReadiness(state, workflow.getArchiveGate(), {
+            activatedSteps,
+            tasksOptionalSteps: tasksAnalysis?.optionalSteps ?? [],
+            verificationOptionalSteps: verificationAnalysis?.optionalSteps ?? [],
+            passedOptionalSteps: verificationAnalysis?.passedOptionalSteps ?? [],
+            tasksComplete: tasksAnalysis?.checklistComplete ?? false,
+            verificationComplete: verificationAnalysis?.checklistComplete ?? false,
+        });
+        if (state.status === 'archived') {
+            checks.push({
+                name: 'archive.location',
+                status: 'fail',
+                message: 'state.json.status is archived but the change is still under changes/active. Archive output is inconsistent.',
+            });
+        }
+        else if (state.status === 'ready_to_archive' && archiveResult.canArchive) {
+            checks.push({
+                name: 'archive.pending',
+                status: 'warn',
+                message: `Change is ready to archive. Run "dorado archive ${this.toRelativePath(rootDir, featureDir)}" before commit.`,
+            });
+        }
+        const failCount = checks.filter(check => check.status === 'fail').length;
+        const warnCount = checks.filter(check => check.status === 'warn').length;
+        return {
+            name: state.feature,
+            path: this.toRelativePath(rootDir, featureDir),
+            status: state.status,
+            progress: this.calculateProgress(state),
+            currentStep: state.current_step,
+            flags,
+            description,
+            activatedSteps,
+            summaryStatus: failCount > 0 ? 'fail' : warnCount > 0 ? 'warn' : 'pass',
+            failCount,
+            warnCount,
+            archiveReady: archiveResult.canArchive,
+            checks,
+        };
+    }
+    async analyzeChecklistDocument(filePath, name, activatedSteps) {
+        const content = await this.fileService.readFile(filePath);
+        const parsed = (0, gray_matter_1.default)(content);
+        const optionalSteps = Array.isArray(parsed.data.optional_steps) ? parsed.data.optional_steps : [];
+        const missing = activatedSteps.filter(step => !optionalSteps.includes(step));
+        const checklistComplete = !/- \[ \]/.test(content);
+        return {
+            optionalSteps,
+            checklistComplete,
+            checks: [
+                {
+                    name: `${name}.optional_steps`,
+                    status: missing.length === 0 ? 'pass' : 'fail',
+                    message: missing.length === 0
+                        ? `All activated optional steps are present in ${name}`
+                        : `Missing optional steps in ${name}: ${missing.join(', ')}`,
+                },
+                {
+                    name: `${name}.checklist`,
+                    status: checklistComplete ? 'pass' : 'warn',
+                    message: checklistComplete
+                        ? `${name} checklist is complete`
+                        : `${name} still has unchecked items`,
+                },
+            ],
+        };
+    }
+    async analyzeVerificationDocument(filePath, activatedSteps) {
+        const content = await this.fileService.readFile(filePath);
+        const parsed = (0, gray_matter_1.default)(content);
+        const optionalSteps = Array.isArray(parsed.data.optional_steps) ? parsed.data.optional_steps : [];
+        const passedOptionalSteps = Array.isArray(parsed.data.passed_optional_steps)
+            ? parsed.data.passed_optional_steps
+            : [];
+        const missing = activatedSteps.filter(step => !optionalSteps.includes(step));
+        const checklistComplete = !/- \[ \]/.test(content);
+        return {
+            optionalSteps,
+            passedOptionalSteps,
+            checklistComplete,
+            checks: [
+                {
+                    name: 'verification.md.optional_steps',
+                    status: missing.length === 0 ? 'pass' : 'fail',
+                    message: missing.length === 0
+                        ? 'All activated optional steps are present in verification.md'
+                        : `Missing optional steps in verification.md: ${missing.join(', ')}`,
+                },
+                {
+                    name: 'verification.md.checklist',
+                    status: checklistComplete ? 'pass' : 'warn',
+                    message: checklistComplete
+                        ? 'verification.md checklist is complete'
+                        : 'verification.md still has unchecked items',
+                },
+            ],
+        };
     }
     maxUpdatedAt(values) {
         const timestamps = values.filter((value) => Boolean(value));

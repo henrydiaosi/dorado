@@ -8,12 +8,13 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
         try {
             const targetPath = projectPath || process.cwd();
             this.logger.info(`Getting status for ${targetPath}`);
-            const [structure, summary, docs, skills, execution] = await Promise.all([
+            const [structure, summary, docs, skills, execution, changes] = await Promise.all([
                 services_1.services.projectService.detectProjectStructure(targetPath),
                 services_1.services.projectService.getProjectSummary(targetPath),
                 services_1.services.projectService.getDocsStatus(targetPath),
                 services_1.services.projectService.getSkillsStatus(targetPath),
                 services_1.services.projectService.getExecutionStatus(targetPath),
+                services_1.services.projectService.getActiveChangeStatusReport(targetPath),
             ]);
             console.log('\nProject Status');
             console.log('==============\n');
@@ -61,6 +62,7 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
             for (const [status, count] of Object.entries(execution.byStatus)) {
                 console.log(`  ${status}: ${count}`);
             }
+            console.log(`Protocol summary: PASS ${changes.totals.pass} | WARN ${changes.totals.warn} | FAIL ${changes.totals.fail}`);
             if (execution.activeChanges.length > 0) {
                 console.log('\nCurrent changes:');
                 for (const change of execution.activeChanges) {

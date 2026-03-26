@@ -37,8 +37,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const process = __importStar(require("process"));
 const ArchiveCommand_1 = require("./commands/ArchiveCommand");
 const BatchCommand_1 = require("./commands/BatchCommand");
+const ChangesCommand_1 = require("./commands/ChangesCommand");
 const DashboardCommand_1 = require("./commands/DashboardCommand");
 const DocsCommand_1 = require("./commands/DocsCommand");
+const FinalizeCommand_1 = require("./commands/FinalizeCommand");
 const IndexCommand_1 = require("./commands/IndexCommand");
 const InitCommand_1 = require("./commands/InitCommand");
 const NewCommand_1 = require("./commands/NewCommand");
@@ -50,7 +52,7 @@ const VerifyCommand_1 = require("./commands/VerifyCommand");
 const WorkflowCommand_1 = require("./commands/WorkflowCommand");
 const services_1 = require("./services");
 const cliArgs_1 = require("./utils/cliArgs");
-const CLI_VERSION = '0.2.0';
+const CLI_VERSION = '0.5.0';
 async function main() {
     try {
         const args = process.argv.slice(2);
@@ -87,8 +89,15 @@ async function main() {
                 break;
             }
             case 'archive': {
+                const checkOnly = commandArgs.includes('--check');
+                const archiveArgs = commandArgs.filter(arg => arg !== '--check');
                 const archiveCmd = new ArchiveCommand_1.ArchiveCommand();
-                await archiveCmd.execute(commandArgs[0]);
+                await archiveCmd.execute(archiveArgs[0], { checkOnly });
+                break;
+            }
+            case 'finalize': {
+                const finalizeCmd = new FinalizeCommand_1.FinalizeCommand();
+                await finalizeCmd.execute(commandArgs[0]);
                 break;
             }
             case 'status': {
@@ -104,6 +113,11 @@ async function main() {
                 }
                 const batchCmd = new BatchCommand_1.BatchCommand();
                 await batchCmd.execute(commandArgs[0], commandArgs[1]);
+                break;
+            }
+            case 'changes': {
+                const changesCmd = new ChangesCommand_1.ChangesCommand();
+                await changesCmd.execute(commandArgs[0] || 'status', commandArgs[1]);
                 break;
             }
             case 'dashboard': {
@@ -173,9 +187,11 @@ Commands:
   new <change-name> [root]  Create a new change
   verify [path]             Verify change completion
   progress [path]           Show workflow progress
-  archive [path]            Check archive readiness
+  archive [path] [--check]  Archive a ready change or only check readiness
   status [path]             Show project status
+  finalize [path]           Verify a completed change and archive it before commit
   batch <action> [path]     Batch operations (export, stats)
+  changes [action] [path]   Active change summaries (status)
   dashboard [action]        Web Dashboard (start, stop, install, build)
                             start [path] [--port <port>] [--no-open]
   docs [action] [path]      Docs helpers (status, generate)
@@ -192,6 +208,8 @@ Examples:
   dorado verify ./changes/active/onboarding-flow
   dorado progress ./changes/active/onboarding-flow
   dorado archive ./changes/active/onboarding-flow
+  dorado archive ./changes/active/onboarding-flow --check
+  dorado finalize ./changes/active/onboarding-flow
   dorado status
   dorado docs status
   dorado docs generate
@@ -202,6 +220,7 @@ Examples:
   dorado skill install-claude
   dorado index build
   dorado batch stats
+  dorado changes status
   dorado dashboard start
   dorado dashboard start C:/work/my-project --port 3020 --no-open
   dorado workflow show

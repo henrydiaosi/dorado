@@ -6,6 +6,7 @@ export declare class IndexBuilder {
     build(rootDir: string): Promise<SkillIndex>;
     write(rootDir: string): Promise<SkillIndex>;
     createEmpty(rootDir: string): Promise<SkillIndex>;
+    private stripVolatileFields;
 }
 export declare const createIndexBuilder: (skillParser: SkillParser) => IndexBuilder;
 //# sourceMappingURL=IndexBuilder.d.ts.map

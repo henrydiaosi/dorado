@@ -51,7 +51,7 @@ exports.DIR_NAMES = {
 };
 exports.NAMING_RULES = {
     FEATURE_NAME: /^[a-z0-9]+(-[a-z0-9]+)*$/,
-    ARCHIVED_DIR: /^\d{4}-\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/,
+    ARCHIVED_DIR: /^\d{4}-\d{2}-\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/,
 };
 exports.DATE_FORMAT = 'YYYY-MM-DD';
 exports.DATETIME_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';

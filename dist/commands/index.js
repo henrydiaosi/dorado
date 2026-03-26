@@ -3,7 +3,7 @@
  * 命令导出
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IndexCommand = exports.SkillsCommand = exports.SkillCommand = exports.DocsCommand = exports.DashboardCommand = exports.WorkflowCommand = exports.BatchCommand = exports.StatusCommand = exports.ArchiveCommand = exports.ProgressCommand = exports.VerifyCommand = exports.NewCommand = exports.InitCommand = exports.BaseCommand = void 0;
+exports.IndexCommand = exports.SkillsCommand = exports.SkillCommand = exports.DocsCommand = exports.DashboardCommand = exports.WorkflowCommand = exports.BatchCommand = exports.StatusCommand = exports.FinalizeCommand = exports.ArchiveCommand = exports.ProgressCommand = exports.VerifyCommand = exports.NewCommand = exports.InitCommand = exports.BaseCommand = void 0;
 var BaseCommand_1 = require("./BaseCommand");
 Object.defineProperty(exports, "BaseCommand", { enumerable: true, get: function () { return BaseCommand_1.BaseCommand; } });
 var InitCommand_1 = require("./InitCommand");
@@ -16,6 +16,8 @@ var ProgressCommand_1 = require("./ProgressCommand");
 Object.defineProperty(exports, "ProgressCommand", { enumerable: true, get: function () { return ProgressCommand_1.ProgressCommand; } });
 var ArchiveCommand_1 = require("./ArchiveCommand");
 Object.defineProperty(exports, "ArchiveCommand", { enumerable: true, get: function () { return ArchiveCommand_1.ArchiveCommand; } });
+var FinalizeCommand_1 = require("./FinalizeCommand");
+Object.defineProperty(exports, "FinalizeCommand", { enumerable: true, get: function () { return FinalizeCommand_1.FinalizeCommand; } });
 var StatusCommand_1 = require("./StatusCommand");
 Object.defineProperty(exports, "StatusCommand", { enumerable: true, get: function () { return StatusCommand_1.StatusCommand; } });
 var BatchCommand_1 = require("./BatchCommand");

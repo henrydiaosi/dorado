@@ -1,42 +1,33 @@
-# 项目说明
+# Project Overview
 
-## Dorado 是什么
+## What Dorado Is
 
-Dorado 是一套面向 AI 协作开发的 CLI 和技能包组合。
+Dorado is a CLI workflow system for AI-assisted project delivery.
 
-它的目标不是替代你的业务框架，也不是强制项目必须是 Web 方案，而是提供一套统一的协作入口，让 CLI、AI 提示词、协议文档和执行过程保持一致。
+It is designed around a protocol shell instead of a full starter template. Initialization sets up the shared working rules first. Project-specific structure is added later, explicitly, when the repository direction is clear.
 
-## Dorado 提供什么
+## Core Principles
 
-- 一个可本地安装的 CLI
-- 一套可同步到 AI 客户端的 skills
-- 一组长期维护的协议资产和约束文档
-- 一套围绕项目协作的标准命令入口
+- Plain `dorado init` keeps the repository minimal. It does not create a web scaffold, a business template, or the first change automatically.
+- Project-facing docs belong to the project layer. Dorado protocol rules live in Dorado-managed assets such as `.dorado/`, `for-ai/`, root skill files, and change records.
+- Change workflows are configurable. Different step profiles can coexist, and users can choose the workflow depth they need.
+- Git hooks focus on real execution state. Empty projects should stay quiet, while active changes can be checked and blocked when incomplete.
+- The dashboard is for inspection and progress visibility, not for owning project generation logic.
 
-## 这个发布仓的角色
+## Typical Use Cases
 
-这个仓库是发布仓，不是源码仓。
+- repositories that want consistent AI behavior
+- teams that want change execution to be visible and reviewable
+- projects that may become web, CLI, Unity, Godot, backend, or protocol-only repositories
+- environments that need the same workflow across Codex and Claude Code
 
-它主要承载：
+## Current Capabilities
 
-- 可执行产物
-- skills 相关文件
-- 资产模板
-- 对外可用说明文档
-
-## 谁应该使用这个仓库
-
-- 想直接安装 Dorado CLI 的使用者
-- 想把 Dorado skill 同步到 Codex 或 Claude Code 的使用者
-- 想查看当前发布版说明文档和提示词示例的使用者
-
-## 谁不应该在这里改动
-
-如果你要：
-
-- 修改命令实现
-- 修改 dashboard 行为
-- 修改 docs 生成逻辑
-- 修改 skill 安装逻辑
-
-请去源码仓处理，而不是在发布仓里直接改实现。
+- protocol-shell-first initialization
+- explicit project-knowledge backfill
+- active change workflow management
+- standard `finalize -> archive -> commit-ready` closeout flow
+- aggregated `PASS / WARN / FAIL` change status
+- Git hook enforcement for active changes
+- dashboard inspection
+- Codex and Claude Code skill install and sync

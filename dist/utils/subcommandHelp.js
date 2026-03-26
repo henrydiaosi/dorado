@@ -7,6 +7,7 @@ exports.getSkillHelpText = getSkillHelpText;
 exports.getIndexHelpText = getIndexHelpText;
 exports.getWorkflowHelpText = getWorkflowHelpText;
 exports.getBatchHelpText = getBatchHelpText;
+exports.getChangesHelpText = getChangesHelpText;
 const HELP_ACTIONS = new Set(['help', '--help', '-h']);
 function isHelpAction(action) {
     return HELP_ACTIONS.has(action || '');
@@ -30,10 +31,10 @@ Skills Commands:
 function getSkillHelpText() {
     return `
 Skill Package Commands:
-  dorado skill status [dir]          - inspect installed Codex skill files
-  dorado skill install [dir]         - install or sync the Codex skill
-  dorado skill status-claude [dir]   - inspect installed Claude Code skill files
-  dorado skill install-claude [dir]  - install or sync the Claude Code skill
+  dorado skill status [dir]          - inspect installed Codex Dorado skill suite
+  dorado skill install [dir]         - install or sync the Codex Dorado skill suite
+  dorado skill status-claude [dir]   - inspect installed Claude Code Dorado skill suite
+  dorado skill install-claude [dir]  - install or sync the Claude Code Dorado skill suite
   dorado skill help                  - show skill command help
 `;
 }
@@ -59,6 +60,14 @@ Batch Commands:
   dorado batch export [path]  - export change data in batch
   dorado batch stats [path]   - show aggregated change statistics
   dorado batch help           - show batch command help
+`;
+}
+function getChangesHelpText() {
+    return `
+Changes Commands:
+  dorado changes status [path]  - show PASS/WARN/FAIL protocol status for every active change
+  dorado finalize [path]        - verify and archive a completed change before commit
+  dorado changes help           - show changes command help
 `;
 }
 //# sourceMappingURL=subcommandHelp.js.map

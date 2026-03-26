@@ -1,4 +1,6 @@
 export type ProjectMode = 'lite' | 'standard' | 'full';
+export type HookCheckPolicy = 'off' | 'warn' | 'error';
+export type ChangeSummaryStatus = 'pass' | 'warn' | 'fail';
 export type FeatureStatus = 'draft' | 'proposed' | 'planned' | 'implementing' | 'verifying' | 'ready_to_archive' | 'archived';
 export interface SkillrcConfig {
     version: string;
@@ -6,7 +8,9 @@ export interface SkillrcConfig {
     hooks: {
         'pre-commit': boolean;
         'post-merge': boolean;
-        'spec-check': 'off' | 'warn' | 'error';
+        'spec-check': HookCheckPolicy;
+        'change-check'?: HookCheckPolicy;
+        'index-check'?: HookCheckPolicy;
     };
     index: {
         include?: string[];
@@ -196,6 +200,25 @@ export interface ExecutionStatus {
     totalActiveChanges: number;
     byStatus: Record<string, number>;
     activeChanges: ExecutionFeatureSummary[];
+}
+export interface ChangeStatusCheck {
+    name: string;
+    status: ChangeSummaryStatus;
+    message: string;
+}
+export interface ActiveChangeStatusItem extends ExecutionFeatureSummary {
+    path: string;
+    activatedSteps: string[];
+    summaryStatus: ChangeSummaryStatus;
+    failCount: number;
+    warnCount: number;
+    archiveReady: boolean;
+    checks: ChangeStatusCheck[];
+}
+export interface ActiveChangeStatusReport {
+    totalActiveChanges: number;
+    totals: Record<ChangeSummaryStatus, number>;
+    changes: ActiveChangeStatusItem[];
 }
 export type WorkflowStep = 'proposal_complete' | 'tasks_complete' | 'implementation_complete' | 'skill_updated' | 'index_regenerated' | 'tests_passed' | 'verification_passed' | 'archived';
 //# sourceMappingURL=types.d.ts.map

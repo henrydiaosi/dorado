@@ -1,14 +1,13 @@
-# Dorado 文档
+# Dorado Docs
 
-当前发布仓只保留 3 份主文档：
+[English](README.md) | [Chinese](README.zh-CN.md)
 
-1. [项目说明](project-overview.md)
-2. [安装使用文档](installation.md)
-3. [Skills 安装说明](skills-installation.md)
-4. [提示词文档](prompt-guide.md)
+Public documentation for the Dorado release repository.
 
-如果你要改源码实现，不在这个发布仓内进行，请转到：
+Recommended reading order:
 
-```text
-C:\Users\henry\Desktop\dorado-cli
-```
+1. [Project Overview](project-overview.md)
+2. [Installation](installation.md)
+3. [Usage](usage.md)
+4. [Prompt Guide](prompt-guide.md)
+5. [Skills Installation](skills-installation.md)

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 if [ ! -f "build-index-auto.js" ]; then
-  echo "[dorado] build-index-auto.js not found, skip index rebuild"
+  echo "[dorado] build-index-auto.js not found, skip hook check"
   exit 0
 fi
 
-node build-index-auto.js
+node build-index-auto.js hook-check post-merge

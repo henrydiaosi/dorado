@@ -1,4 +1,4 @@
-import { DocsStatus, ExecutionStatus, KnowledgeDocInfo, ModuleInfo, ProjectMode, ProjectStructureStatus, ProjectSummary, SkillsStatus } from '../core/types';
+import { ActiveChangeStatusItem, ActiveChangeStatusReport, DocsStatus, ExecutionStatus, KnowledgeDocInfo, ModuleInfo, ProjectMode, ProjectStructureStatus, ProjectSummary, SkillsStatus } from '../core/types';
 import { ConfigManager } from './ConfigManager';
 import { FileService } from './FileService';
 import { IndexBuilder } from './IndexBuilder';
@@ -110,6 +110,8 @@ export declare class ProjectService {
     scanPlanningDocs(rootDir: string): Promise<KnowledgeDocInfo[]>;
     scanSkillHierarchy(rootDir: string): Promise<SkillsStatus>;
     getExecutionStatus(rootDir: string): Promise<ExecutionStatus>;
+    getActiveChangeStatusReport(rootDir: string): Promise<ActiveChangeStatusReport>;
+    getActiveChangeStatusItem(featurePath: string): Promise<ActiveChangeStatusItem>;
     getFeatureProjectContext(rootDir: string, affects?: string[]): Promise<FeatureProjectContext>;
     getDocsStatus(rootDir: string): Promise<DocsStatus>;
     getSkillsStatus(rootDir: string): Promise<SkillsStatus>;
@@ -175,6 +177,9 @@ export declare class ProjectService {
     private getFirstChangeSuggestion;
     private calculateProgress;
     private extractDescription;
+    private buildActiveChangeStatusItem;
+    private analyzeChecklistDocument;
+    private analyzeVerificationDocument;
     private maxUpdatedAt;
     private getLatestUpdatedAt;
     private shouldRebuildIndex;

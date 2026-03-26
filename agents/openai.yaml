@@ -1,4 +1,4 @@
 interface:
   display_name: "Dorado"
   short_description: "Inspect, initialize, and operate Dorado projects"
-  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: if the user intent is simply to initialize the project, still run dorado status first, use dorado init for plain initialization, verify the protocol-shell files on disk before declaring success, use explicit knowledge backfill later, do not assume a web template when the project type is unclear, and do not create the first change automatically."
+  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: if the user intent is simply to initialize the project, still run dorado status first, use dorado init for plain initialization, verify the protocol-shell files on disk before declaring success, use explicit knowledge backfill later, do not assume a web template when the project type is unclear, do not create the first change automatically, and use dorado changes status when you need a summary across active changes."

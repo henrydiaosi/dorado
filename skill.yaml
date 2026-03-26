@@ -1,7 +1,7 @@
 name: dorado
 title: Dorado
 description: Protocol-shell-first Dorado bootstrap and execution skill for Codex, Claude Code, and similar AI tools.
-version: 3.1.0
+version: 5.0.0
 author: Dorado Team
 license: MIT
 
@@ -49,6 +49,9 @@ commands:
   - id: dashboard_start
     command: "dorado dashboard start [path] [--port <port>] [--no-open]"
     purpose: "Open the inspection dashboard for uninitialized, partial, or actively changing projects."
+  - id: changes_status
+    command: "dorado changes status [project-dir]"
+    purpose: "Show PASS/WARN/FAIL protocol status for every active change."
   - id: docs_status
     command: "dorado docs status [project-dir]"
     purpose: "Show project-doc coverage and missing knowledge docs."
@@ -68,8 +71,11 @@ commands:
     command: "dorado verify [changes/active/<feature>]"
     purpose: "Check protocol completeness and optional-step coverage."
   - id: archive
-    command: "dorado archive [changes/active/<feature>]"
-    purpose: "Check archive readiness against workflow gates."
+    command: "dorado archive [changes/active/<feature>] [--check]"
+    purpose: "Archive a completed change after gate checks; use --check for readiness only."
+  - id: finalize
+    command: "dorado finalize [changes/active/<feature>]"
+    purpose: "Run verify + index refresh + archive as the standard closeout flow before commit."
   - id: workflow_show
     command: "dorado workflow show"
     purpose: "Show workflow configuration for the current project."
@@ -81,13 +87,13 @@ commands:
     purpose: "Check whether the Codex-installed dorado skill is present and in sync."
   - id: skill_install
     command: "dorado skill install"
-    purpose: "Install or sync the dorado skill into ~/.codex/skills/dorado."
+    purpose: "Install or sync the Dorado skill suite into ~/.codex/skills/."
   - id: skill_status_claude
     command: "dorado skill status-claude"
     purpose: "Check whether the Claude Code-installed dorado skill is present and in sync."
   - id: skill_install_claude
     command: "dorado skill install-claude"
-    purpose: "Install or sync the dorado skill into ~/.claude/skills/dorado."
+    purpose: "Install or sync the Dorado skill suite into ~/.claude/skills/."
 
 workflow:
   read_order:

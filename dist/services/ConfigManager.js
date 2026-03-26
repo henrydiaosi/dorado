@@ -46,7 +46,7 @@ class ConfigManager {
     async loadConfig(rootDir) {
         const configPath = path.join(rootDir, constants_1.FILE_NAMES.SKILLRC);
         try {
-            return await this.fileService.readJSON(configPath);
+            return this.normalizeConfig(await this.fileService.readJSON(configPath));
         }
         catch {
             throw new errors_1.ProjectNotInitializedError(`Cannot load .skillrc from ${rootDir}`);
@@ -66,18 +66,57 @@ class ConfigManager {
     }
     async createDefaultConfig(mode = 'standard') {
         const workflow = ConfigurableWorkflow_1.WORKFLOW_PRESETS[mode];
+        const defaultPolicy = mode === 'lite' ? 'off' : 'error';
         return {
-            version: '3.0',
+            version: '4.0',
             mode,
             hooks: {
                 'pre-commit': true,
                 'post-merge': true,
-                'spec-check': mode === 'full' ? 'error' : mode === 'lite' ? 'off' : 'warn',
+                'spec-check': defaultPolicy,
+                'change-check': defaultPolicy,
+                'index-check': defaultPolicy,
             },
             index: {
                 exclude: ['node_modules/**', 'dist/**', '*.test.*'],
             },
             workflow,
+        };
+    }
+    normalizeConfig(config) {
+        const hooks = config.hooks || {
+            'pre-commit': true,
+            'post-merge': true,
+            'spec-check': 'error',
+        };
+        const fallbackPolicy = hooks['spec-check'] ?? 'error';
+        const normalizedHooks = {
+            'pre-commit': hooks['pre-commit'] !== false,
+            'post-merge': hooks['post-merge'] !== false,
+            'spec-check': fallbackPolicy,
+            'change-check': hooks['change-check'] ?? fallbackPolicy,
+            'index-check': hooks['index-check'] ?? fallbackPolicy,
+        };
+        const legacyWarnDefaults = config.version === '3.0' &&
+            config.mode !== 'lite' &&
+            normalizedHooks['pre-commit'] &&
+            normalizedHooks['post-merge'] &&
+            normalizedHooks['spec-check'] === 'warn' &&
+            normalizedHooks['change-check'] === 'warn' &&
+            normalizedHooks['index-check'] === 'warn';
+        return {
+            ...config,
+            version: config.version === '3.0' ? '4.0' : config.version,
+            hooks: {
+                ...normalizedHooks,
+                ...(legacyWarnDefaults
+                    ? {
+                        'spec-check': 'error',
+                        'change-check': 'error',
+                        'index-check': 'error',
+                    }
+                    : {}),
+            },
         };
     }
 }

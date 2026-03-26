@@ -68,11 +68,24 @@ class ProjectAssetService {
             }
             const sourcePath = path_1.default.join(rootDir, ...hook.sourceRelativePath.split('/'));
             const targetPath = path_1.default.join(rootDir, ...hook.targetRelativePath.split('/'));
-            if (!(await this.fileService.exists(sourcePath)) || (await this.fileService.exists(targetPath))) {
+            if (!(await this.fileService.exists(sourcePath))) {
                 skipped.push(hook.targetRelativePath);
                 continue;
             }
-            await this.fileService.copy(sourcePath, targetPath);
+            const sourceContent = await this.fileService.readFile(sourcePath);
+            const targetExists = await this.fileService.exists(targetPath);
+            if (targetExists) {
+                const targetContent = await this.fileService.readFile(targetPath);
+                if (targetContent === sourceContent) {
+                    skipped.push(hook.targetRelativePath);
+                    continue;
+                }
+                if (!this.isDoradoManagedHook(targetContent)) {
+                    skipped.push(hook.targetRelativePath);
+                    continue;
+                }
+            }
+            await this.fileService.writeFile(targetPath, sourceContent);
             installed.push(hook.targetRelativePath);
         }
         return { installed, skipped };
@@ -168,6 +181,9 @@ class ProjectAssetService {
     }
     getPackageRoot() {
         return path_1.default.resolve(__dirname, '../..');
+    }
+    isDoradoManagedHook(content) {
+        return content.includes('build-index-auto.js') || content.includes('[dorado]');
     }
 }
 exports.ProjectAssetService = ProjectAssetService;

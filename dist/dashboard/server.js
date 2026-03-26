@@ -408,7 +408,7 @@ class DashboardServer {
                 const result = await this.executeDorado(`archive ./changes/active/${name}`);
                 res.json({
                     success: true,
-                    message: `Change "${name}" archived`,
+                    message: `Change "${name}" archived successfully`,
                     result,
                 });
             }
@@ -1033,7 +1033,7 @@ class DashboardServer {
     }
     async executeDorado(command) {
         try {
-            const cliPath = path_1.default.resolve(__dirname, '../cli.js');
+            const cliPath = this.resolveCliEntryPath();
             const { stdout } = await execAsync(`"${process.execPath}" "${cliPath}" ${command}`, {
                 cwd: this.config.projectPath,
             });
@@ -1042,6 +1042,17 @@ class DashboardServer {
         catch (error) {
             throw new Error(`Dorado command failed: ${this.getErrorMessage(error)}`);
         }
+    }
+    resolveCliEntryPath() {
+        const candidates = [
+            path_1.default.resolve(__dirname, '../cli.js'),
+            path_1.default.resolve(__dirname, '..', '..', 'dist', 'cli.js'),
+        ];
+        const resolved = candidates.find(candidate => fs_extra_1.default.existsSync(candidate));
+        if (!resolved) {
+            throw new Error('Unable to resolve Dorado CLI entry point.');
+        }
+        return resolved;
     }
     async start() {
         return new Promise((resolve, reject) => {

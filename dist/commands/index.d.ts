@@ -7,6 +7,7 @@ export { NewCommand } from './NewCommand';
 export { VerifyCommand } from './VerifyCommand';
 export { ProgressCommand } from './ProgressCommand';
 export { ArchiveCommand } from './ArchiveCommand';
+export { FinalizeCommand } from './FinalizeCommand';
 export { StatusCommand } from './StatusCommand';
 export { BatchCommand } from './BatchCommand';
 export { WorkflowCommand } from './WorkflowCommand';

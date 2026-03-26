@@ -1,72 +1,66 @@
-# 提示词文档
+# Prompt Guide
 
-本文只讨论“如何向 AI 使用 Dorado”，不讨论源码实现。
+## Principle
 
-## 推荐原则
+Prompt Dorado with short intent, not with long internal checklists.
 
-- 直接说目标，不要写很长的协议说明
-- 尽量使用短提示词
-- 让 Dorado skill 自己展开内部规则
+Dorado should expand the required init, inspection, and change rules internally.
 
-## 初始化相关提示词
+## Recommended Prompts
 
-- `使用 dorado 初始化当前项目`
-- `使用 dorado 初始化这个目录`
-- `use dorado to initialize this directory`
-- `initialize this project with dorado`
-
-## 状态检查相关提示词
-
-- `使用 dorado 检查当前项目状态`
-- `使用 dorado 检查这个仓库`
-- `use dorado to inspect this repo`
-
-## 知识层相关提示词
-
-- `使用 dorado 补齐当前项目知识层`
-- `使用 dorado 生成项目文档和 skills`
-- `use dorado to backfill the project knowledge layer`
-
-## 执行相关提示词
-
-- `使用 dorado 为这个需求创建 change`
-- `使用 dorado 推进这个需求`
-- `use dorado to create and advance a change for this requirement`
-
-## 给 Codex 的用法
-
-在 Codex 中同步 skill 后，直接使用：
+### Initialize A Project
 
 ```text
-使用 dorado 初始化当前项目
+Use Dorado to initialize this project.
 ```
 
-或：
+### Initialize The Workflow Framework
 
 ```text
-Use dorado to inspect this repo and continue the work.
+Use Dorado to initialize the workflow framework for this project.
 ```
 
-## 给 Claude Code 的用法
-
-在 Claude Code 中同步 skill 后，也建议保持同样的短提示词风格：
+### Backfill The Knowledge Layer
 
 ```text
-使用 dorado 检查当前目录
+Use Dorado to backfill the project knowledge layer.
 ```
 
-或：
+### Start A Requirement
 
 ```text
-使用 dorado 为这个需求创建 change
+Use Dorado to create and advance a change for this requirement.
 ```
 
-## 不推荐的写法
+### Close A Completed Change
 
-不建议每次都写一大段重复规则，例如：
+```text
+Use Dorado to finalize this completed change before commit.
+```
 
-- 手动把所有 guardrails 重复一遍
-- 手动描述完整内部流程
-- 手动规定一堆技能包内部已经知道的细节
+### Inspect Progress
 
-短提示词才是 Dorado 的目标使用方式。
+```text
+Use Dorado to inspect the current active changes and overall project progress.
+```
+
+## Skill-Based Prompts
+
+When your AI client supports Dorado skills, prefer the skill name directly:
+
+```text
+Use $dorado to initialize this project.
+Use $dorado to backfill the project knowledge layer.
+Use $dorado to inspect active changes and progress.
+Use $dorado-finalize to close a completed change before commit.
+```
+
+## Prompt Boundaries
+
+You usually do not need to repeat:
+
+- the internal file checklist for init
+- protocol-shell verification steps
+- warnings like "do not create a web template" on every prompt
+
+Those are Dorado defaults and should be enforced by the CLI and the installed skills.

@@ -153,6 +153,7 @@ dorado docs generate [path]
 dorado new <change-name> [path]
 dorado docs status [path]
 dorado skills status [path]
+dorado changes status [path]
 dorado dashboard start [path] [--port <port>] [--no-open]
 dorado index check [path]
 dorado index build [path]
@@ -161,11 +162,24 @@ dorado workflow list-flags
 dorado progress [changes/active/<change>]
 dorado verify [changes/active/<change>]
 dorado archive [changes/active/<change>]
+dorado archive [changes/active/<change>] --check
+dorado finalize [changes/active/<change>]
 dorado skill status
 dorado skill install
 dorado skill status-claude
 dorado skill install-claude
 ```
+
+The default `dorado skill install` and `dorado skill install-claude` commands now install a Dorado skill suite:
+
+- `dorado`
+- `dorado-init`
+- `dorado-inspect`
+- `dorado-backfill`
+- `dorado-change`
+- `dorado-verify`
+- `dorado-archive`
+- `dorado-finalize`
 
 Preferred execution order for a new directory:
 
@@ -177,6 +191,10 @@ dorado new <change-name> [path]
 ```
 
 For plain init, stop after `dorado init [path]` and verify the protocol-shell assets. Do not silently continue into docs generation unless the user explicitly wants knowledge backfill.
+
+For completed changes, archive before commit. Use `dorado archive [changes/active/<change>]` to execute the archive and `--check` only when you want a readiness preview without moving files.
+
+For the normal closeout path, prefer `dorado finalize [changes/active/<change>]`. It should verify completeness, rebuild the index, archive the change, and leave Git commit as a separate manual step.
 
 ## Dashboard Use Rules
 

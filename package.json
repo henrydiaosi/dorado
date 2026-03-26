@@ -1,24 +1,14 @@
 {
   "name": "dorado-cli",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "CLI tool for enforcing dorado workflow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "dorado": "dist/cli.js"
   },
-  "files": [
-    "dist",
-    "docs",
-    "assets",
-    ".dorado/templates",
-    "agents",
-    "SKILL.md",
-    "skill.yaml",
-    "README.md"
-  ],
   "scripts": {
-    "build": "node -e \"console.log('This repository ships prebuilt dist assets; no local build step is required.')\"",
+    "build": "tsc && node scripts/copy-dashboard-assets.js",
     "dev": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest --run",
