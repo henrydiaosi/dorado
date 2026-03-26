@@ -8,7 +8,7 @@ Dorado 是一个以协议壳优先为核心的 AI 协作 CLI。
 
 当前版本：
 
-- CLI：`0.5.0`
+- CLI：`0.5.1`
 - Skills 协议版本：`5.0.0`
 
 文档入口：
@@ -27,3 +27,4 @@ Dorado 是一个以协议壳优先为核心的 AI 协作 CLI。
 - change 状态检查与 Git hooks 阻断
 - 标准化的 `finalize -> archive -> 可提交` 收口流程
 - Codex 与 Claude Code 的 skills 安装
+- `dorado doctor` / `npm run doctor` 发布自检

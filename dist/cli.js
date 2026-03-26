@@ -39,6 +39,7 @@ const ArchiveCommand_1 = require("./commands/ArchiveCommand");
 const BatchCommand_1 = require("./commands/BatchCommand");
 const ChangesCommand_1 = require("./commands/ChangesCommand");
 const DashboardCommand_1 = require("./commands/DashboardCommand");
+const DoctorCommand_1 = require("./commands/DoctorCommand");
 const DocsCommand_1 = require("./commands/DocsCommand");
 const FinalizeCommand_1 = require("./commands/FinalizeCommand");
 const IndexCommand_1 = require("./commands/IndexCommand");
@@ -52,7 +53,7 @@ const VerifyCommand_1 = require("./commands/VerifyCommand");
 const WorkflowCommand_1 = require("./commands/WorkflowCommand");
 const services_1 = require("./services");
 const cliArgs_1 = require("./utils/cliArgs");
-const CLI_VERSION = '0.5.0';
+const CLI_VERSION = '0.5.1';
 async function main() {
     try {
         const args = process.argv.slice(2);
@@ -135,6 +136,11 @@ async function main() {
                 await docsCmd.execute(commandArgs[0] || 'status', commandArgs[1]);
                 break;
             }
+            case 'doctor': {
+                const doctorCmd = new DoctorCommand_1.DoctorCommand();
+                await doctorCmd.execute(commandArgs[0]);
+                break;
+            }
             case 'skills': {
                 const skillsCmd = new SkillsCommand_1.SkillsCommand();
                 await skillsCmd.execute(commandArgs[0] || 'status', commandArgs[1]);
@@ -195,6 +201,7 @@ Commands:
   dashboard [action]        Web Dashboard (start, stop, install, build)
                             start [path] [--port <port>] [--no-open]
   docs [action] [path]      Docs helpers (status, generate)
+  doctor                    Validate release integrity and install consistency
   skills [action] [path]    Skills status helpers (status)
   skill [action] [dir]      Skill package helpers (status, install, status-claude, install-claude)
   index [action] [path]     Index helpers (check, build)
@@ -213,6 +220,7 @@ Examples:
   dorado status
   dorado docs status
   dorado docs generate
+  dorado doctor
   dorado skills status
   dorado skill status
   dorado skill install

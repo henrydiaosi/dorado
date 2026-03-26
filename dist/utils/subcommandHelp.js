@@ -5,6 +5,7 @@ exports.getDocsHelpText = getDocsHelpText;
 exports.getSkillsHelpText = getSkillsHelpText;
 exports.getSkillHelpText = getSkillHelpText;
 exports.getIndexHelpText = getIndexHelpText;
+exports.getDoctorHelpText = getDoctorHelpText;
 exports.getWorkflowHelpText = getWorkflowHelpText;
 exports.getBatchHelpText = getBatchHelpText;
 exports.getChangesHelpText = getChangesHelpText;
@@ -44,6 +45,13 @@ Index Commands:
   dorado index check [path]  - inspect index presence, freshness, and stats
   dorado index build [path]  - rebuild SKILL.index.json
   dorado index help          - show index command help
+`;
+}
+function getDoctorHelpText() {
+    return `
+Doctor Commands:
+  dorado doctor       - validate release integrity and install consistency
+  dorado doctor help  - show doctor command help
 `;
 }
 function getWorkflowHelpText() {

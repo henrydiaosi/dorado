@@ -12,6 +12,7 @@ export { StatusCommand } from './StatusCommand';
 export { BatchCommand } from './BatchCommand';
 export { WorkflowCommand } from './WorkflowCommand';
 export { DashboardCommand } from './DashboardCommand';
+export { DoctorCommand } from './DoctorCommand';
 export { DocsCommand } from './DocsCommand';
 export { SkillCommand } from './SkillCommand';
 export { SkillsCommand } from './SkillsCommand';

@@ -1,4 +1,4 @@
-﻿# 使用说明
+# 使用说明
 
 ## 常用命令
 
@@ -13,6 +13,7 @@ dorado progress [changes/active/<change>]
 dorado verify [changes/active/<change>]
 dorado archive [changes/active/<change>]
 dorado finalize [changes/active/<change>]
+dorado doctor
 dorado dashboard start [path] [--port <port>] [--no-open]
 dorado skill status
 dorado skill install
@@ -47,6 +48,8 @@ dorado new <change-name> [path]
 dorado finalize [changes/active/<change>]
 ```
 
+`finalize` 完成后，Git 提交仍然是独立的手动步骤。
+
 ## 初始化预期
 
 普通初始化默认保持最小化：
@@ -55,6 +58,20 @@ dorado finalize [changes/active/<change>]
 - 不默认生成 web 模板或业务 scaffold
 - 不自动创建第一个 change
 - 没有 active changes 时，Git hooks 应保持安静
+
+## 安装与发布自检
+
+如果你想确认当前 CLI 安装是否完整，安装或升级后执行：
+
+```bash
+dorado doctor
+```
+
+如果你想检查发布仓目录本身是否完整，在发布仓根目录执行：
+
+```bash
+npm run doctor
+```
 
 ## 进度与检查
 

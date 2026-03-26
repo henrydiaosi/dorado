@@ -8,7 +8,7 @@ It initializes the collaboration protocol first, keeps the initial repository mi
 
 Current release:
 
-- CLI: `0.5.0`
+- CLI: `0.5.1`
 - Skills protocol: `5.0.0`
 
 Documentation:
@@ -27,3 +27,4 @@ What this release covers:
 - change-status inspection and Git hook enforcement
 - standard change closeout with `finalize -> archive -> commit-ready`
 - Codex and Claude Code skill installation
+- release self-check with `dorado doctor` and `npm run doctor`

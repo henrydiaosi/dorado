@@ -54,6 +54,22 @@ Default location:
 
 The installed skill suite matches the Codex set.
 
+## After CLI Upgrade
+
+After upgrading Dorado CLI, resync both skill targets so the prompts and workflow rules stay aligned with the installed release:
+
+```bash
+dorado skill install
+dorado skill install-claude
+```
+
+Then verify:
+
+```bash
+dorado skill status
+dorado skill status-claude
+```
+
 ## Prompt Naming
 
 Prefer `$dorado` in new prompts.

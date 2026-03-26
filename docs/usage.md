@@ -13,6 +13,7 @@ dorado progress [changes/active/<change>]
 dorado verify [changes/active/<change>]
 dorado archive [changes/active/<change>]
 dorado finalize [changes/active/<change>]
+dorado doctor
 dorado dashboard start [path] [--port <port>] [--no-open]
 dorado skill status
 dorado skill install
@@ -47,6 +48,8 @@ When a change is complete, close it out with:
 dorado finalize [changes/active/<change>]
 ```
 
+Commit remains a separate manual step after finalize.
+
 ## Init Expectations
 
 Plain initialization is intentionally minimal:
@@ -55,6 +58,12 @@ Plain initialization is intentionally minimal:
 - it does not create a web template or business scaffold by default
 - it does not create the first change automatically
 - Git hooks should stay quiet until active changes exist
+
+## Installation And Release Checks
+
+Use `dorado doctor` after install or upgrade if you want to confirm that the current CLI package is complete.
+
+Use `npm run doctor` inside the release repository if you want to verify the release directory before or after reinstalling it globally.
 
 ## Progress And Checks
 

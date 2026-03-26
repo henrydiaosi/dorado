@@ -39,7 +39,16 @@ async function main() {
     console.log(`[release:smoke] using temp dir: ${tempDir}`);
 
     let output = run('node', [cliPath, '--help']);
-    assertContains(output, 'Dorado CLI v0.5.0', 'root help');
+    assertContains(output, 'Dorado CLI v0.5.1', 'root help');
+    assertContains(output, 'dorado doctor', 'root help');
+
+    output = run('node', [path.join(rootDir, 'scripts', 'release-doctor.js')]);
+    assertContains(output, 'Doctor Summary', 'doctor script output');
+    assertContains(output, 'FAILED: 0', 'doctor script output');
+
+    output = run('node', [cliPath, 'doctor']);
+    assertContains(output, 'Doctor Summary', 'doctor command output');
+    assertContains(output, 'FAILED: 0', 'doctor command output');
 
     output = run('node', [cliPath, 'dashboard', '--help']);
     assertContains(output, 'dorado dashboard start', 'dashboard help');
