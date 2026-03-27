@@ -1,33 +1,41 @@
 # Project Overview
 
+[English](project-overview.md) | [简体中文](project-overview.zh-CN.md)
+
 ## What Dorado Is
 
-Dorado is a CLI workflow system for AI-assisted project delivery.
+Dorado is a protocol-shell-first CLI for AI-assisted project execution.
 
-It is designed around a protocol shell instead of a full starter template. Initialization sets up the shared working rules first. Project-specific structure is added later, explicitly, when the repository direction is clear.
+It starts by creating a shared collaboration protocol, not a business template. The repository can stay minimal at the beginning, then grow deliberately through project knowledge, skills, and change records.
 
-## Core Principles
+## What Dorado Is Not
 
-- Plain `dorado init` keeps the repository minimal. It does not create a web scaffold, a business template, or the first change automatically.
-- Project-facing docs belong to the project layer. Dorado protocol rules live in Dorado-managed assets such as `.dorado/`, `for-ai/`, root skill files, and change records.
-- Change workflows are configurable. Different step profiles can coexist, and users can choose the workflow depth they need.
-- Git hooks focus on real execution state. Empty projects should stay quiet, while active changes can be checked and blocked when incomplete.
-- The dashboard is for inspection and progress visibility, not for owning project generation logic.
+Dorado is not a fixed web starter, not a forced scaffold generator, and not a dashboard-centered project builder.
 
-## Typical Use Cases
+The dashboard is inspection-first. It helps users see current state, active changes, workflow profiles, and protocol gaps. The CLI and skills still own the main execution flow.
 
-- repositories that want consistent AI behavior
-- teams that want change execution to be visible and reviewable
-- projects that may become web, CLI, Unity, Godot, backend, or protocol-only repositories
-- environments that need the same workflow across Codex and Claude Code
+## Core Model
 
-## Current Capabilities
+- `dorado init` creates the protocol shell only.
+- Project-specific knowledge is added later with explicit actions such as `dorado docs generate`.
+- Work is tracked through changes under `changes/active/`.
+- A completed change is normally closed with `dorado finalize`, which verifies it, refreshes the index, archives it, and leaves the repository ready for manual commit.
+- Archived changes remain history. Follow-up work should be started as a new change instead of editing archived records back into active execution.
+
+## Why This Model Exists
+
+- some repositories are not web projects
+- some teams need to delay structure decisions
+- AI clients need stable protocol rules before business-specific files appear
+- change state should be reviewable and enforceable through files, not only chat history
+
+## Current Release Capabilities
 
 - protocol-shell-first initialization
 - explicit project-knowledge backfill
-- active change workflow management
-- standard `finalize -> archive -> commit-ready` closeout flow
-- aggregated `PASS / WARN / FAIL` change status
+- configurable workflow profiles and optional governance steps
+- active change verification and status inspection
+- `finalize -> archive -> commit-ready` closeout flow
 - Git hook enforcement for active changes
-- dashboard inspection
-- Codex and Claude Code skill install and sync
+- inspection-first dashboard
+- Codex and Claude Code skill installation and sync

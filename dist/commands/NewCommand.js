@@ -38,6 +38,7 @@ const path = __importStar(require("path"));
 const constants_1 = require("../core/constants");
 const services_1 = require("../services");
 const PathUtils_1 = require("../utils/PathUtils");
+const workflow_1 = require("../workflow");
 const BaseCommand_1 = require("./BaseCommand");
 class NewCommand extends BaseCommand_1.BaseCommand {
     async execute(featureName, rootDir) {
@@ -54,7 +55,10 @@ class NewCommand extends BaseCommand_1.BaseCommand {
             await services_1.services.fileService.ensureDir(featureDir);
             const config = await services_1.services.configManager.loadConfig(targetDir);
             const projectContext = await services_1.services.projectService.getFeatureProjectContext(targetDir, []);
-            await services_1.services.fileService.writeJSON(path.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(featureName, [], config.mode));
+            const workflowProfileId = (0, workflow_1.getModeDefaultWorkflowProfileId)(config.mode);
+            const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
+            const optionalSteps = workflow.getActivatedSteps([]);
+            await services_1.services.fileService.writeJSON(path.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(featureName, [], config.mode, workflowProfileId));
             await services_1.services.fileService.writeFile(path.join(featureDir, constants_1.FILE_NAMES.PROPOSAL), services_1.services.templateEngine.generateProposalTemplate({
                 feature: featureName,
                 mode: config.mode,
@@ -75,6 +79,14 @@ class NewCommand extends BaseCommand_1.BaseCommand {
                 mode: config.mode,
                 projectContext,
             }));
+            for (const asset of (0, workflow_1.getOptionalStepProtocolAssets)(optionalSteps).filter(item => item.step !== 'code_review')) {
+                await services_1.services.fileService.writeFile(path.join(featureDir, asset.fileName), services_1.services.templateEngine.generateOptionalStepTemplate(asset.step, {
+                    feature: featureName,
+                    mode: config.mode,
+                    optionalSteps,
+                    projectContext,
+                }));
+            }
             this.success(`Change ${featureName} created at ${featureDir}`);
         }
         catch (error) {

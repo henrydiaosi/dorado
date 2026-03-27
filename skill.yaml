@@ -1,7 +1,7 @@
 name: dorado
 title: Dorado
 description: Protocol-shell-first Dorado bootstrap and execution skill for Codex, Claude Code, and similar AI tools.
-version: 5.0.0
+version: 5.0.1
 author: Dorado Team
 license: MIT
 
@@ -82,6 +82,9 @@ commands:
   - id: workflow_flags
     command: "dorado workflow list-flags"
     purpose: "List supported workflow feature flags."
+  - id: workflow_set_mode
+    command: "dorado workflow set-mode <lite|standard|full> [project-dir] [--force-active]"
+    purpose: "Switch the repository workflow mode and optionally force-update active changes."
   - id: skill_status
     command: "dorado skill status"
     purpose: "Check whether the Codex-installed dorado skill is present and in sync."

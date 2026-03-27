@@ -6,6 +6,7 @@ import { ProjectAssetService } from './ProjectAssetService';
 import { ProjectScaffoldCommandExecutionResult, ProjectScaffoldCommandPlan, ProjectScaffoldCommandService } from './ProjectScaffoldCommandService';
 import { ProjectScaffoldPlan, ProjectScaffoldService } from './ProjectScaffoldService';
 import { SkillParser } from './SkillParser';
+import { StateManager } from './StateManager';
 import { TemplateEngine } from './TemplateEngine';
 import { FeatureProjectContext, ProjectBootstrapInput } from './TemplateEngine';
 import { ProjectPresetFirstChangeSuggestion } from '../presets/ProjectPresets';
@@ -87,18 +88,30 @@ export interface ProjectKnowledgeGenerationResult {
     runtimeGeneratedFiles: string[];
     firstChangeSuggestion: ProjectPresetFirstChangeSuggestion | null;
 }
+export interface ProjectModeSwitchResult {
+    previousMode: ProjectMode;
+    nextMode: ProjectMode;
+    activeChangesDetected: string[];
+    activeChangesUpdated: string[];
+    refreshedProtocolShellRootSkill: boolean;
+    rebuiltIndex: boolean;
+}
 export declare class ProjectService {
     private fileService;
     private configManager;
     private templateEngine;
     private indexBuilder;
     private skillParser;
+    private stateManager;
     private projectAssetService;
     private projectScaffoldService;
     private projectScaffoldCommandService;
-    constructor(fileService: FileService, configManager: ConfigManager, templateEngine: TemplateEngine, indexBuilder: IndexBuilder, skillParser: SkillParser, projectAssetService: ProjectAssetService, projectScaffoldService: ProjectScaffoldService, projectScaffoldCommandService: ProjectScaffoldCommandService);
+    constructor(fileService: FileService, configManager: ConfigManager, templateEngine: TemplateEngine, indexBuilder: IndexBuilder, skillParser: SkillParser, stateManager: StateManager, projectAssetService: ProjectAssetService, projectScaffoldService: ProjectScaffoldService, projectScaffoldCommandService: ProjectScaffoldCommandService);
     initializeProject(rootDir: string, mode: ProjectMode, input?: ProjectBootstrapInput): Promise<ProjectInitializationResult>;
     generateProjectKnowledge(rootDir: string, input?: ProjectBootstrapInput): Promise<ProjectKnowledgeGenerationResult>;
+    switchProjectMode(rootDir: string, nextMode: ProjectMode, options?: {
+        forceActive?: boolean;
+    }): Promise<ProjectModeSwitchResult>;
     initializeProtocolShellProject(rootDir: string, mode: ProjectMode, input?: ProjectBootstrapInput): Promise<ProjectInitializationResult>;
     detectProjectStructure(rootDir: string): Promise<ProjectStructureStatus>;
     getProjectSummary(rootDir: string): Promise<ProjectSummary>;
@@ -164,6 +177,10 @@ export declare class ProjectService {
     private writeProjectKnowledgeLayer;
     private writeGeneratedFile;
     private isProtocolShellRootSkill;
+    private detectProtocolShellRootSkillLanguage;
+    private refreshProtocolShellRootSkillIfManaged;
+    private listActiveChangeNames;
+    private updateActiveChangeModes;
     private createEmptyScaffoldResult;
     private applyProjectScaffoldPhase;
     private getProtocolShellTemplateGeneratedPaths;
@@ -180,6 +197,7 @@ export declare class ProjectService {
     private buildActiveChangeStatusItem;
     private analyzeChecklistDocument;
     private analyzeVerificationDocument;
+    private analyzeOptionalStepProtocolAssets;
     private maxUpdatedAt;
     private getLatestUpdatedAt;
     private shouldRebuildIndex;
@@ -190,6 +208,6 @@ export declare class ProjectService {
     private toSlug;
     private scanDocsInDirectory;
 }
-export declare const createProjectService: (fileService: FileService, configManager: ConfigManager, templateEngine: TemplateEngine, indexBuilder: IndexBuilder, skillParser: SkillParser, projectAssetService: ProjectAssetService, projectScaffoldService: ProjectScaffoldService, projectScaffoldCommandService: ProjectScaffoldCommandService) => ProjectService;
+export declare const createProjectService: (fileService: FileService, configManager: ConfigManager, templateEngine: TemplateEngine, indexBuilder: IndexBuilder, skillParser: SkillParser, stateManager: StateManager, projectAssetService: ProjectAssetService, projectScaffoldService: ProjectScaffoldService, projectScaffoldCommandService: ProjectScaffoldCommandService) => ProjectService;
 export {};
 //# sourceMappingURL=ProjectService.d.ts.map

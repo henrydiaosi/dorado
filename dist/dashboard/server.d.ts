@@ -34,11 +34,8 @@ export declare class DashboardServer {
     private getWorkflowPresetDescription;
     private isValidProjectMode;
     private getEnabledOptionalSteps;
-    private isWorkflowProfileId;
-    private getModeDefaultWorkflowProfileId;
     private getWorkflowProfilesForMode;
     private resolveWorkflowProfile;
-    private inferWorkflowProfileIdFromFlags;
     private loadProjectSummary;
     private loadExecutionStatus;
     private loadDashboardExecutionStatus;

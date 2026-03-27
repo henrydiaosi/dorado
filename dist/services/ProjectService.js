@@ -10,14 +10,15 @@ const path_1 = __importDefault(require("path"));
 const constants_1 = require("../core/constants");
 const ProjectPresets_1 = require("../presets/ProjectPresets");
 const ArchiveGate_1 = require("../workflow/ArchiveGate");
-const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
+const workflow_1 = require("../workflow");
 class ProjectService {
-    constructor(fileService, configManager, templateEngine, indexBuilder, skillParser, projectAssetService, projectScaffoldService, projectScaffoldCommandService) {
+    constructor(fileService, configManager, templateEngine, indexBuilder, skillParser, stateManager, projectAssetService, projectScaffoldService, projectScaffoldCommandService) {
         this.fileService = fileService;
         this.configManager = configManager;
         this.templateEngine = templateEngine;
         this.indexBuilder = indexBuilder;
         this.skillParser = skillParser;
+        this.stateManager = stateManager;
         this.projectAssetService = projectAssetService;
         this.projectScaffoldService = projectScaffoldService;
         this.projectScaffoldCommandService = projectScaffoldCommandService;
@@ -159,6 +160,59 @@ class ProjectService {
             hookSkippedFiles: hookResult.skipped,
             runtimeGeneratedFiles,
             firstChangeSuggestion: this.getFirstChangeSuggestion(normalized),
+        };
+    }
+    async switchProjectMode(rootDir, nextMode, options = {}) {
+        const config = await this.configManager.loadConfig(rootDir);
+        const previousMode = config.mode;
+        const activeChangesDetected = await this.listActiveChangeNames(rootDir);
+        if (previousMode === nextMode) {
+            return {
+                previousMode,
+                nextMode,
+                activeChangesDetected,
+                activeChangesUpdated: [],
+                refreshedProtocolShellRootSkill: false,
+                rebuiltIndex: false,
+            };
+        }
+        if (activeChangesDetected.length > 0 && options.forceActive !== true) {
+            throw new Error(`Cannot switch mode while active changes exist: ${activeChangesDetected.join(', ')}. ` +
+                'Archive or finalize them first, or rerun with --force-active.');
+        }
+        const defaultConfig = await this.configManager.createDefaultConfig(nextMode);
+        await this.configManager.saveConfig(rootDir, {
+            ...config,
+            version: defaultConfig.version,
+            mode: nextMode,
+            hooks: {
+                ...defaultConfig.hooks,
+                'pre-commit': config.hooks?.['pre-commit'] ?? defaultConfig.hooks['pre-commit'],
+                'post-merge': config.hooks?.['post-merge'] ?? defaultConfig.hooks['post-merge'],
+            },
+            index: config.index ?? defaultConfig.index,
+            workflow: defaultConfig.workflow,
+        });
+        const activeChangesUpdated = options.forceActive === true
+            ? await this.updateActiveChangeModes(rootDir, activeChangesDetected, nextMode)
+            : [];
+        const refreshedProtocolShellRootSkill = await this.refreshProtocolShellRootSkillIfManaged(rootDir, nextMode);
+        let rebuiltIndex = false;
+        try {
+            await this.indexBuilder.write(rootDir);
+            rebuiltIndex = true;
+        }
+        catch {
+            await this.indexBuilder.createEmpty(rootDir);
+            rebuiltIndex = true;
+        }
+        return {
+            previousMode,
+            nextMode,
+            activeChangesDetected,
+            activeChangesUpdated,
+            refreshedProtocolShellRootSkill,
+            rebuiltIndex,
         };
     }
     async initializeProtocolShellProject(rootDir, mode, input) {
@@ -405,6 +459,7 @@ class ProjectService {
                 progress: change.progress,
                 currentStep: change.currentStep,
                 flags: change.flags,
+                activatedSteps: change.activatedSteps,
                 description: change.description,
             })),
         };
@@ -423,7 +478,7 @@ class ProjectService {
             };
         }
         const config = await this.configManager.loadConfig(rootDir);
-        const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
+        const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
         const entries = await fs_extra_1.default.readdir(featuresDir, { withFileTypes: true });
         const activeChanges = [];
         for (const entry of entries) {
@@ -449,7 +504,7 @@ class ProjectService {
         const resolvedFeaturePath = path_1.default.resolve(featurePath);
         const rootDir = path_1.default.resolve(resolvedFeaturePath, '..', '..', '..');
         const config = await this.configManager.loadConfig(rootDir);
-        const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
+        const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
         const item = await this.buildActiveChangeStatusItem(rootDir, resolvedFeaturePath, workflow);
         if (!item) {
             throw new Error('Change state file not found.');
@@ -956,6 +1011,49 @@ class ProjectService {
             content.includes('协议壳') ||
             content.includes('project knowledge: not generated yet'));
     }
+    async detectProtocolShellRootSkillLanguage(filePath) {
+        const content = await this.fileService.readFile(filePath);
+        if (content.includes('Layer: protocol shell') ||
+            content.includes('## Current State') ||
+            content.includes('Project knowledge: not generated yet')) {
+            return 'en-US';
+        }
+        return 'zh-CN';
+    }
+    async refreshProtocolShellRootSkillIfManaged(rootDir, mode) {
+        const rootSkillPath = path_1.default.join(rootDir, constants_1.FILE_NAMES.SKILL_MD);
+        if (!(await this.isProtocolShellRootSkill(rootSkillPath))) {
+            return false;
+        }
+        const documentLanguage = await this.detectProtocolShellRootSkillLanguage(rootSkillPath);
+        const projectName = path_1.default.basename(path_1.default.resolve(rootDir));
+        await this.fileService.writeFile(rootSkillPath, this.renderProtocolShellRootSkill(projectName, documentLanguage, mode));
+        return true;
+    }
+    async listActiveChangeNames(rootDir) {
+        const activeDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE);
+        if (!(await this.fileService.exists(activeDir))) {
+            return [];
+        }
+        const entries = await fs_extra_1.default.readdir(activeDir, { withFileTypes: true });
+        return entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+            .sort((left, right) => left.localeCompare(right));
+    }
+    async updateActiveChangeModes(rootDir, changeNames, nextMode) {
+        const updated = [];
+        for (const changeName of changeNames) {
+            const featurePath = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE, changeName);
+            const state = await this.stateManager.readState(featurePath);
+            if (state.mode !== nextMode) {
+                state.mode = nextMode;
+                await this.stateManager.writeState(featurePath, state);
+                updated.push(changeName);
+            }
+        }
+        return updated;
+    }
     createEmptyScaffoldResult() {
         return {
             plan: null,
@@ -1278,6 +1376,10 @@ ${formatSuggestion()}
         if (verificationAnalysis) {
             checks.push(...verificationAnalysis.checks);
         }
+        const optionalStepAssetAnalysis = await this.analyzeOptionalStepProtocolAssets(featureDir, activatedSteps);
+        if (optionalStepAssetAnalysis) {
+            checks.push(...optionalStepAssetAnalysis.checks);
+        }
         checks.push({
             name: 'state.json',
             status: 'pass',
@@ -1290,6 +1392,7 @@ ${formatSuggestion()}
             passedOptionalSteps: verificationAnalysis?.passedOptionalSteps ?? [],
             tasksComplete: tasksAnalysis?.checklistComplete ?? false,
             verificationComplete: verificationAnalysis?.checklistComplete ?? false,
+            optionalStepDocuments: optionalStepAssetAnalysis?.documents ?? [],
         });
         if (state.status === 'archived') {
             checks.push({
@@ -1379,6 +1482,43 @@ ${formatSuggestion()}
                         : 'verification.md still has unchecked items',
                 },
             ],
+        };
+    }
+    async analyzeOptionalStepProtocolAssets(featureDir, activatedSteps) {
+        const documents = [];
+        const checks = [];
+        for (const asset of (0, workflow_1.getOptionalStepProtocolAssets)(activatedSteps)) {
+            const filePath = path_1.default.join(featureDir, asset.fileName);
+            const exists = await this.fileService.exists(filePath);
+            let checklistComplete = false;
+            checks.push({
+                name: asset.fileName,
+                status: exists ? 'pass' : 'fail',
+                message: exists
+                    ? `${asset.fileName} exists for activated optional step ${asset.step}`
+                    : `${asset.fileName} is required when ${asset.step} is activated`,
+            });
+            if (exists) {
+                const content = await this.fileService.readFile(filePath);
+                checklistComplete = !/- \[ \]/.test(content);
+                checks.push({
+                    name: `${asset.fileName}.checklist`,
+                    status: checklistComplete ? 'pass' : 'warn',
+                    message: checklistComplete
+                        ? `${asset.fileName} checklist is complete`
+                        : `${asset.fileName} still has unchecked items`,
+                });
+            }
+            documents.push({
+                step: asset.step,
+                fileName: asset.fileName,
+                exists,
+                checklistComplete,
+            });
+        }
+        return {
+            documents,
+            checks,
         };
     }
     maxUpdatedAt(values) {
@@ -1526,6 +1666,6 @@ ${formatSuggestion()}
     }
 }
 exports.ProjectService = ProjectService;
-const createProjectService = (fileService, configManager, templateEngine, indexBuilder, skillParser, projectAssetService, projectScaffoldService, projectScaffoldCommandService) => new ProjectService(fileService, configManager, templateEngine, indexBuilder, skillParser, projectAssetService, projectScaffoldService, projectScaffoldCommandService);
+const createProjectService = (fileService, configManager, templateEngine, indexBuilder, skillParser, stateManager, projectAssetService, projectScaffoldService, projectScaffoldCommandService) => new ProjectService(fileService, configManager, templateEngine, indexBuilder, skillParser, stateManager, projectAssetService, projectScaffoldService, projectScaffoldCommandService);
 exports.createProjectService = createProjectService;
 //# sourceMappingURL=ProjectService.js.map

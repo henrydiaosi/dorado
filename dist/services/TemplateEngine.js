@@ -47,6 +47,9 @@ class TemplateEngine {
     generateReviewTemplate(input) {
         return this.executionBuilder.generateReviewTemplate(input);
     }
+    generateOptionalStepTemplate(step, input) {
+        return this.executionBuilder.generateOptionalStepTemplate(step, input);
+    }
     generateProjectReadmeTemplate(fallbackName, mode, input) {
         return this.projectBuilder.generateProjectReadmeTemplate(fallbackName, mode, input);
     }

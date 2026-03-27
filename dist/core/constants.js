@@ -31,6 +31,12 @@ exports.FILE_NAMES = {
     VERIFICATION: 'verification.md',
     STATE: 'state.json',
     REVIEW: 'review.md',
+    DESIGN: 'design.md',
+    PLAN: 'plan.md',
+    SECURITY: 'security.md',
+    ADR: 'adr.md',
+    DB_CHANGE: 'db-change.md',
+    API_CHANGE: 'api-change.md',
     INDEX: 'INDEX.json',
 };
 exports.DIR_NAMES = {

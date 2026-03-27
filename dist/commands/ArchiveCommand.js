@@ -42,7 +42,7 @@ const gray_matter_1 = __importDefault(require("gray-matter"));
 const constants_1 = require("../core/constants");
 const services_1 = require("../services");
 const ArchiveGate_1 = require("../workflow/ArchiveGate");
-const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
+const workflow_1 = require("../workflow");
 const BaseCommand_1 = require("./BaseCommand");
 class ArchiveCommand extends BaseCommand_1.BaseCommand {
     async execute(featurePath, options = {}) {
@@ -67,7 +67,7 @@ class ArchiveCommand extends BaseCommand_1.BaseCommand {
             }
             const featureState = await services_1.services.fileService.readJSON(statePath);
             const config = await services_1.services.configManager.loadConfig(projectRoot);
-            const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
+            const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
             const proposal = (0, gray_matter_1.default)(await services_1.services.fileService.readFile(proposalPath));
             const tasks = (0, gray_matter_1.default)(await services_1.services.fileService.readFile(tasksPath));
             const verification = (0, gray_matter_1.default)(await services_1.services.fileService.readFile(verificationPath));
@@ -82,6 +82,17 @@ class ArchiveCommand extends BaseCommand_1.BaseCommand {
             const passedOptionalSteps = Array.isArray(verification.data.passed_optional_steps)
                 ? verification.data.passed_optional_steps
                 : [];
+            const optionalStepDocuments = await Promise.all((0, workflow_1.getOptionalStepProtocolAssets)(activatedSteps).map(async (asset) => {
+                const assetPath = path.join(targetPath, asset.fileName);
+                const exists = await services_1.services.fileService.exists(assetPath);
+                const content = exists ? await services_1.services.fileService.readFile(assetPath) : '';
+                return {
+                    step: asset.step,
+                    fileName: asset.fileName,
+                    exists,
+                    checklistComplete: exists ? !/- \[ \]/.test(content) : false,
+                };
+            }));
             const archiveConfig = config.workflow?.archive_gate || {
                 require_verification: true,
                 require_skill_update: true,
@@ -95,6 +106,7 @@ class ArchiveCommand extends BaseCommand_1.BaseCommand {
                 passedOptionalSteps,
                 tasksComplete: !/- \[ \]/.test(tasks.content),
                 verificationComplete: !/- \[ \]/.test(verification.content),
+                optionalStepDocuments,
             });
             console.log('\nArchive Gate Check:');
             console.log('===================\n');

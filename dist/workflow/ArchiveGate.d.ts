@@ -22,6 +22,12 @@ export interface ArchiveProtocolState {
     passedOptionalSteps: string[];
     tasksComplete: boolean;
     verificationComplete: boolean;
+    optionalStepDocuments: Array<{
+        step: string;
+        fileName: string;
+        exists: boolean;
+        checklistComplete: boolean;
+    }>;
 }
 export declare class ArchiveGate {
     checkArchiveReadiness(featureState: FeatureState, config: ArchiveGateConfig, protocolState?: ArchiveProtocolState): Promise<ArchiveCheckResult>;

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExecutionTemplateBuilder = void 0;
 const TemplateBuilderBase_1 = require("./TemplateBuilderBase");
+const workflow_1 = require("../../workflow");
 class ExecutionTemplateBuilder extends TemplateBuilderBase_1.TemplateBuilderBase {
     constructor(inputs) {
         super();
@@ -294,6 +295,144 @@ ${this.formatReferenceList(linkedKnowledgeDocs, 'TBD')}
             created,
             status: 'pending_review',
         }, this.copy(context.documentLanguage, zh, en));
+    }
+    generateOptionalStepTemplate(step, input) {
+        if (step === 'code_review') {
+            return this.generateReviewTemplate(input);
+        }
+        const context = this.inputs.normalizeFeatureTemplateInput(input);
+        const created = this.getCurrentDate();
+        const asset = (0, workflow_1.getOptionalStepProtocolAsset)(step);
+        const labels = this.getOptionalStepLabels(step);
+        const projectDocs = context.projectContext.projectDocs ?? [];
+        const moduleSkills = context.projectContext.moduleSkills ?? [];
+        const linkedKnowledgeDocs = [
+            ...(context.projectContext.apiDocs ?? []),
+            ...(context.projectContext.designDocs ?? []),
+            ...(context.projectContext.planningDocs ?? []),
+        ];
+        const affects = context.affects.length > 0 ? context.affects.join(', ') : 'TBD';
+        const zh = `## 文档范围
+
+- Change: \`${context.feature}\`
+- Step: \`${step}\`
+- 模式: \`${context.mode}\`
+- 影响范围: ${context.affects.length > 0 ? context.affects.join(', ') : '待补充'}
+
+## 背景
+
+${context.background}
+
+## 关联上下文
+
+**项目文档：**
+${this.formatReferenceList(projectDocs, '待补充')}
+
+**模块技能：**
+${this.formatReferenceList(moduleSkills, '待补充')}
+
+**API / 设计 / 计划文档：**
+${this.formatReferenceList(linkedKnowledgeDocs, '待补充')}
+
+## 核心内容
+
+- [ ] ${labels.zhPrimary}
+- [ ] ${labels.zhSecondary}
+- [ ] ${labels.zhRisk}
+
+## 结论
+
+- [ ] 已完成 \`${asset.fileName}\` 并可进入后续验证`;
+        const en = `## Document Scope
+
+- Change: \`${context.feature}\`
+- Step: \`${step}\`
+- Mode: \`${context.mode}\`
+- Affects: ${affects}
+
+## Background
+
+${context.background}
+
+## Context References
+
+**Project docs:**
+${this.formatReferenceList(projectDocs, 'TBD')}
+
+**Module skills:**
+${this.formatReferenceList(moduleSkills, 'TBD')}
+
+**API / design / planning docs:**
+${this.formatReferenceList(linkedKnowledgeDocs, 'TBD')}
+
+## Core Checklist
+
+- [ ] ${labels.enPrimary}
+- [ ] ${labels.enSecondary}
+- [ ] ${labels.enRisk}
+
+## Decision
+
+- [ ] \`${asset.fileName}\` is complete and ready for downstream verification`;
+        return this.withFrontmatter({
+            feature: context.feature,
+            created,
+            optional_step: step,
+            status: 'pending',
+        }, this.copy(context.documentLanguage, zh, en));
+    }
+    getOptionalStepLabels(step) {
+        const labels = {
+            design_doc: {
+                zhPrimary: '记录设计目标、边界与核心方案',
+                zhSecondary: '说明模块影响、替代方案与取舍',
+                zhRisk: '列出设计风险、兼容性影响与验证方式',
+                enPrimary: 'Document design goals, boundaries, and the chosen approach',
+                enSecondary: 'Explain module impact, alternatives, and tradeoffs',
+                enRisk: 'Track design risks, compatibility impact, and validation plan',
+            },
+            plan_doc: {
+                zhPrimary: '拆分执行阶段、里程碑与顺序',
+                zhSecondary: '记录依赖、回滚点与并行策略',
+                zhRisk: '说明计划风险、阻塞项与 fallback',
+                enPrimary: 'Break execution into phases, milestones, and sequence',
+                enSecondary: 'Record dependencies, rollback points, and parallel strategy',
+                enRisk: 'Describe planning risks, blockers, and fallback path',
+            },
+            security_review: {
+                zhPrimary: '检查鉴权、权限、敏感数据与外部输入',
+                zhSecondary: '记录控制措施、日志审计与防护边界',
+                zhRisk: '说明残余风险、误用场景与验证证据',
+                enPrimary: 'Review auth, permissions, sensitive data, and external input',
+                enSecondary: 'Record controls, audit coverage, and protection boundaries',
+                enRisk: 'Capture residual risks, misuse cases, and verification evidence',
+            },
+            adr: {
+                zhPrimary: '明确架构决策、适用范围与决策原因',
+                zhSecondary: '记录备选方案与拒绝原因',
+                zhRisk: '说明后果、迁移影响与后续约束',
+                enPrimary: 'State the architecture decision, scope, and rationale',
+                enSecondary: 'Record alternatives considered and why they were rejected',
+                enRisk: 'Describe consequences, migration impact, and follow-up constraints',
+            },
+            db_change_doc: {
+                zhPrimary: '说明 schema 或数据变更内容',
+                zhSecondary: '记录迁移步骤、回滚策略与兼容窗口',
+                zhRisk: '列出数据风险、性能影响与验证方式',
+                enPrimary: 'Describe schema or data changes',
+                enSecondary: 'Record migration steps, rollback strategy, and compatibility window',
+                enRisk: 'List data risks, performance impact, and validation method',
+            },
+            api_change_doc: {
+                zhPrimary: '说明接口契约、字段或行为变化',
+                zhSecondary: '记录兼容性策略、调用方影响与示例',
+                zhRisk: '列出破坏性变更风险与验证证据',
+                enPrimary: 'Describe contract, field, or behavior changes',
+                enSecondary: 'Record compatibility strategy, consumer impact, and examples',
+                enRisk: 'Track breaking-change risk and verification evidence',
+            },
+        };
+        return labels[step];
     }
 }
 exports.ExecutionTemplateBuilder = ExecutionTemplateBuilder;

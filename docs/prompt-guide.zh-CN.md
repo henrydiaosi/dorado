@@ -1,66 +1,114 @@
-﻿# 提示词文档
+# 提示词文档
+
+[English](prompt-guide.md) | [简体中文](prompt-guide.zh-CN.md)
 
 ## 原则
 
-给 Dorado 的提示词应该尽量短，表达清楚意图即可，不需要把内部检查清单整段写进去。
+给 Dorado 的提示词应该表达简短意图，而不是重复一长串内部检查清单。
 
-Dorado 应该在内部自动展开初始化、检查、change 流程这些规则。
+如果 Dorado CLI 和 Dorado skills 安装正确，协议壳检查、初始化默认行为、change 规则、工作模式规则以及收口顺序都应该由系统自动执行。
 
-## 推荐提示词
+## 推荐提示词风格
 
-### 初始化项目
-
-```text
-使用 Dorado 初始化这个项目。
-```
-
-### 初始化流程框架
+直接表达意图即可，例如：
 
 ```text
-使用 Dorado 初始化这个项目的流程框架。
+Use Dorado to initialize this project.
+Use Dorado to inspect the current repository state and tell me what is missing.
+Use Dorado to backfill the project knowledge layer.
+Use Dorado to create and advance a change for this requirement.
+Use Dorado to verify the current active change.
+Use Dorado to finalize the completed change before commit.
+Use Dorado to show the current workflow mode for this repository.
+Use Dorado to switch this repository to full mode.
 ```
 
-### 补齐知识层
+## Skill 优先提示词风格
+
+当你的 AI 客户端支持 Dorado skills 时，优先直接使用 skill 名称：
 
 ```text
-使用 Dorado 补齐这个项目的知识层。
+Use $dorado to initialize this project.
+Use $dorado to inspect this repository.
+Use $dorado to backfill the project knowledge layer.
+Use $dorado-change to create and advance a change for this requirement.
+Use $dorado-workflow to inspect the current workflow mode.
+Use $dorado-workflow to switch this repository to standard mode.
+Use $dorado-finalize to close the completed change before commit.
 ```
 
-### 开始一个需求
+## 好的提示词模式
+
+- 说清目标，而不是内部清单
+- 目标不明确时点明仓库或 change
+- 说清当前是 inspection、creation、verification、closeout 还是 workflow mode 操作
+- 在不同项目类型之间保持稳定表达
+
+## 示例
+
+### 初始化仓库
 
 ```text
-使用 Dorado 为这个需求创建并推进一个 change。
+Use Dorado to initialize this project.
 ```
 
-### 收口已完成的 Change
+### 检查已有仓库
 
 ```text
-使用 Dorado 在提交前收口这个已完成的 change。
+Use Dorado to inspect this repository and summarize the current Dorado state.
 ```
 
-### 查看进度
+### 启动一个需求
 
 ```text
-使用 Dorado 检查当前 active changes 和整体进度。
+Use Dorado to create and advance a change for this requirement:
+Add a versioned public REST API for project exports.
 ```
 
-## Skill 形式提示词
-
-如果当前 AI 客户端已经安装 Dorado skills，优先直接使用技能名：
+### 设计文档优先启动流程
 
 ```text
-使用 $dorado 初始化这个项目。
-使用 $dorado 补齐这个项目的知识层。
-使用 $dorado 检查 active changes 和整体进度。
-使用 $dorado-finalize 在提交前收口一个已完成的 change。
+Use Dorado to initialize this project, read the existing design documents, backfill the project knowledge layer, derive the execution TODO, and then create the first change to execute it.
 ```
 
-## 边界说明
+如果仓库方向在初始化前就已经有文档，这是一种完全正确的 Dorado 使用方式。
 
-通常不需要在每次提示里重复这些内容：
+### 查看或切换工作模式
 
-- 初始化文件清单
-- 协议壳校验步骤
-- 每次都重复强调“不要默认生成 web 模板”
+```text
+Use Dorado to show the current workflow mode and switch to full mode only if it is safe.
+```
 
-这些应该由 Dorado CLI 和已安装 skills 作为默认规则来保证。
+### 归档后继续追加工作
+
+```text
+Use Dorado to create a follow-up change for the archived export API work.
+```
+
+### 完成后的收口
+
+```text
+Use Dorado to finalize this completed change before commit.
+```
+
+## 通常不需要重复说明的内容
+
+- “检查目录是否已初始化”
+- “不要创建 web 模板”
+- “初始化时不要创建首个 change”
+- “初始化后验证协议壳”
+- “提交前先归档”
+- “存在 active changes 时阻止模式切换”
+
+这些都应当是 Dorado 的默认规则，不需要每次提示都重复。
+
+## 什么时候要写得更具体
+
+以下情况建议写得更具体：
+
+- 你想指定 change 名称
+- 你只要 inspection，不要写入
+- 你要创建 follow-up change，而不是碰归档历史
+- 你想指定某一个 skill 入口，而不是通用 `$dorado`
+- 你想让 Dorado 从现有设计文档推导知识层和执行 TODO
+- 你想明确指定 `lite`、`standard`、`full` 中的某个仓库模式

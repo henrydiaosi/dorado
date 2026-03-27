@@ -13,6 +13,12 @@ export declare const FILE_NAMES: {
     VERIFICATION: string;
     STATE: string;
     REVIEW: string;
+    DESIGN: string;
+    PLAN: string;
+    SECURITY: string;
+    ADR: string;
+    DB_CHANGE: string;
+    API_CHANGE: string;
     INDEX: string;
 };
 export declare const DIR_NAMES: {

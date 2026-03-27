@@ -194,6 +194,7 @@ export interface ExecutionFeatureSummary {
     progress: number;
     currentStep: string;
     flags: string[];
+    activatedSteps: string[];
     description: string;
 }
 export interface ExecutionStatus {

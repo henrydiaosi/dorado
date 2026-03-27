@@ -70,11 +70,12 @@ class StateManager {
         state.current_step = targetStatus;
         await this.writeState(featurePath, state);
     }
-    createInitialState(feature, affects, mode = 'standard') {
+    createInitialState(feature, affects, mode = 'standard', workflowProfileId) {
         return {
             version: '1.0',
             feature,
             mode,
+            workflow_profile_id: workflowProfileId,
             status: 'draft',
             current_step: 'write_proposal',
             affects,

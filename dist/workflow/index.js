@@ -3,7 +3,7 @@
  * 工作流层导出
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WORKFLOW_PRESETS = exports.ConfigurableWorkflow = exports.archiveGate = exports.ArchiveGate = exports.indexRegenerator = exports.IndexRegenerator = exports.skillUpdateEngine = exports.SkillUpdateEngine = exports.hookSystem = exports.HookSystem = exports.verificationSystem = exports.VerificationSystem = exports.workflowEngine = exports.WorkflowEngine = void 0;
+exports.resolveWorkflowProfileIdForChange = exports.isWorkflowProfileId = exports.inferWorkflowProfileIdFromFlags = exports.getModeDefaultWorkflowProfileId = exports.WORKFLOW_PROFILE_CATALOG = exports.getOptionalStepProtocolAssets = exports.getOptionalStepProtocolAsset = exports.OPTIONAL_STEP_PROTOCOL_ASSETS = exports.WORKFLOW_PRESETS = exports.ConfigurableWorkflow = exports.archiveGate = exports.ArchiveGate = exports.indexRegenerator = exports.IndexRegenerator = exports.skillUpdateEngine = exports.SkillUpdateEngine = exports.hookSystem = exports.HookSystem = exports.verificationSystem = exports.VerificationSystem = exports.workflowEngine = exports.WorkflowEngine = void 0;
 var WorkflowEngine_1 = require("./WorkflowEngine");
 Object.defineProperty(exports, "WorkflowEngine", { enumerable: true, get: function () { return WorkflowEngine_1.WorkflowEngine; } });
 Object.defineProperty(exports, "workflowEngine", { enumerable: true, get: function () { return WorkflowEngine_1.workflowEngine; } });
@@ -25,4 +25,14 @@ Object.defineProperty(exports, "archiveGate", { enumerable: true, get: function 
 var ConfigurableWorkflow_1 = require("./ConfigurableWorkflow");
 Object.defineProperty(exports, "ConfigurableWorkflow", { enumerable: true, get: function () { return ConfigurableWorkflow_1.ConfigurableWorkflow; } });
 Object.defineProperty(exports, "WORKFLOW_PRESETS", { enumerable: true, get: function () { return ConfigurableWorkflow_1.WORKFLOW_PRESETS; } });
+var OptionalStepProtocolAssets_1 = require("./OptionalStepProtocolAssets");
+Object.defineProperty(exports, "OPTIONAL_STEP_PROTOCOL_ASSETS", { enumerable: true, get: function () { return OptionalStepProtocolAssets_1.OPTIONAL_STEP_PROTOCOL_ASSETS; } });
+Object.defineProperty(exports, "getOptionalStepProtocolAsset", { enumerable: true, get: function () { return OptionalStepProtocolAssets_1.getOptionalStepProtocolAsset; } });
+Object.defineProperty(exports, "getOptionalStepProtocolAssets", { enumerable: true, get: function () { return OptionalStepProtocolAssets_1.getOptionalStepProtocolAssets; } });
+var WorkflowProfiles_1 = require("./WorkflowProfiles");
+Object.defineProperty(exports, "WORKFLOW_PROFILE_CATALOG", { enumerable: true, get: function () { return WorkflowProfiles_1.WORKFLOW_PROFILE_CATALOG; } });
+Object.defineProperty(exports, "getModeDefaultWorkflowProfileId", { enumerable: true, get: function () { return WorkflowProfiles_1.getModeDefaultWorkflowProfileId; } });
+Object.defineProperty(exports, "inferWorkflowProfileIdFromFlags", { enumerable: true, get: function () { return WorkflowProfiles_1.inferWorkflowProfileIdFromFlags; } });
+Object.defineProperty(exports, "isWorkflowProfileId", { enumerable: true, get: function () { return WorkflowProfiles_1.isWorkflowProfileId; } });
+Object.defineProperty(exports, "resolveWorkflowProfileIdForChange", { enumerable: true, get: function () { return WorkflowProfiles_1.resolveWorkflowProfileIdForChange; } });
 //# sourceMappingURL=index.js.map

@@ -57,9 +57,11 @@ Doctor Commands:
 function getWorkflowHelpText() {
     return `
 Workflow Commands:
-  dorado workflow show [path]        - show workflow configuration for the project
-  dorado workflow list-flags [path]  - list supported workflow flags
-  dorado workflow help               - show workflow command help
+  dorado workflow show [path]                                  - show workflow configuration for the project
+  dorado workflow list-flags [path]                            - list supported workflow flags
+  dorado workflow set-mode <lite|standard|full> [path]         - switch repository workflow mode
+  dorado workflow set-mode <mode> [path] --force-active        - force a mode switch even when active changes exist
+  dorado workflow help                                         - show workflow command help
 `;
 }
 function getBatchHelpText() {

@@ -1,20 +1,24 @@
 # Installation
 
+[English](installation.md) | [简体中文](installation.zh-CN.md)
+
 ## Requirements
 
 - Node.js `>= 18`
 - npm `>= 8`
 
-## First Install
+## Install From The Release Repository
 
-Run inside the Dorado release repository:
+Run inside the Dorado release repository root:
 
 ```bash
 npm install
 npm install -g .
 ```
 
-## Verify After Install
+This release repository already contains the publishable CLI assets. Install from the full repository root instead of manually copying `dist/` or a few individual files.
+
+## Verify The Install
 
 ```bash
 dorado --version
@@ -22,7 +26,7 @@ dorado --help
 dorado doctor
 ```
 
-If you want to verify the release directory itself before using it:
+If you want to verify the release repository itself:
 
 ```bash
 npm run doctor
@@ -30,7 +34,7 @@ npm run doctor
 
 ## Upgrade
 
-Upgrade by replacing or pulling the full release repository, then reinstalling from the repository root:
+Use a full repository sync, then reinstall:
 
 ```bash
 npm install
@@ -38,21 +42,21 @@ npm install -g .
 dorado doctor
 ```
 
-If you use Dorado skills, resync them after the CLI upgrade:
+If you also use Dorado skills, resync them after the CLI upgrade:
 
 ```bash
 dorado skill install
 dorado skill install-claude
 ```
 
-## Optional Smoke Check
+## Optional Release Smoke Check
 
 ```bash
 npm run release:smoke
 ```
 
-## Important
+## Upgrade Rules
 
-- Do not partially copy `dist/`, `dist/cli.js`, or individual release files into an older release directory.
-- The supported upgrade path is a full repository sync plus reinstall, not a manual overlay of selected artifacts.
-- This repository ships release assets and public docs, not the source-development workflow repository.
+- Do not overlay selected release files onto an older directory.
+- Do not copy only `dist/cli.js`, `dist/`, or individual scripts and call that an upgrade.
+- The supported path is: sync the full release repository, reinstall globally, then run `dorado doctor`.

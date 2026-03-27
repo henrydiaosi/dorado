@@ -53,7 +53,7 @@ const VerifyCommand_1 = require("./commands/VerifyCommand");
 const WorkflowCommand_1 = require("./commands/WorkflowCommand");
 const services_1 = require("./services");
 const cliArgs_1 = require("./utils/cliArgs");
-const CLI_VERSION = '0.5.1';
+const CLI_VERSION = '0.5.2';
 async function main() {
     try {
         const args = process.argv.slice(2);
@@ -158,7 +158,7 @@ async function main() {
             }
             case 'workflow': {
                 const workflowCmd = new WorkflowCommand_1.WorkflowCommand();
-                await workflowCmd.execute(commandArgs[0] || 'show', commandArgs[1]);
+                await workflowCmd.execute(commandArgs[0] || 'show', ...commandArgs.slice(1));
                 break;
             }
             case 'help':
@@ -205,7 +205,7 @@ Commands:
   skills [action] [path]    Skills status helpers (status)
   skill [action] [dir]      Skill package helpers (status, install, status-claude, install-claude)
   index [action] [path]     Index helpers (check, build)
-  workflow [action]         Workflow configuration (show, list-flags)
+  workflow [action]         Workflow configuration (show, list-flags, set-mode)
   help, -h, --help          Show this help message
   version, -v, --version    Show version
 
@@ -232,6 +232,7 @@ Examples:
   dorado dashboard start
   dorado dashboard start C:/work/my-project --port 3020 --no-open
   dorado workflow show
+  dorado workflow set-mode full
 `);
 }
 main().catch(error => {

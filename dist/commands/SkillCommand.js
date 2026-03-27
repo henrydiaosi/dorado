@@ -41,7 +41,7 @@ dorado init [path]
         title: 'Dorado Inspect',
         description: 'Inspect an existing repository to determine Dorado initialization level, docs coverage, skills coverage, and active change posture.',
         shortDescription: 'Inspect Dorado project state',
-        defaultPrompt: 'Use $dorado-inspect to inspect the current repository state with dorado status, dorado docs status, dorado skills status, dorado changes status, and the dashboard when needed. Prefer diagnosis before mutation.',
+        defaultPrompt: 'Use $dorado-inspect to inspect the current repository state with dorado status, dorado docs status, dorado skills status, dorado changes status, dorado workflow show, and the dashboard when needed. Prefer diagnosis before mutation.',
         markdown: `# Dorado Inspect
 
 Use this action when the user wants to understand current project posture before changing anything.
@@ -53,6 +53,7 @@ dorado status [path]
 dorado docs status [path]
 dorado skills status [path]
 dorado changes status [path]
+dorado workflow show
 dorado dashboard start [path] [--port <port>] [--no-open]
 \`\`\`
 
@@ -92,11 +93,38 @@ dorado index check [path]
 `,
     },
     {
+        name: 'dorado-workflow',
+        title: 'Dorado Workflow',
+        description: 'Inspect workflow configuration, compare workflow flags, and switch repository modes with the correct active-change safety rules.',
+        shortDescription: 'Inspect or switch workflow mode',
+        defaultPrompt: 'Use $dorado-workflow to inspect or change Dorado workflow mode. Prefer dorado workflow show first, explain repository mode versus per-change activation clearly, and only use dorado workflow set-mode --force-active when the user intentionally wants active changes updated too.',
+        markdown: `# Dorado Workflow
+
+Use this action when the user wants to inspect workflow settings or switch repository mode.
+
+## Commands
+
+\`\`\`bash
+dorado workflow show
+dorado workflow list-flags
+dorado workflow set-mode <lite|standard|full> [path]
+dorado workflow set-mode <lite|standard|full> [path] --force-active
+\`\`\`
+
+## Rules
+
+- repository mode is repository-level governance, not per-change completion state
+- prefer \`dorado workflow show\` before switching modes
+- switching modes is blocked when active changes exist unless \`--force-active\` is used
+- use \`--force-active\` only when the user explicitly wants active changes updated too
+`,
+    },
+    {
         name: 'dorado-change',
         title: 'Dorado Change',
         description: 'Create or advance an active change inside a Dorado project while respecting workflow files and optional-step activation.',
         shortDescription: 'Create or advance a change',
-        defaultPrompt: 'Use $dorado-change to create or advance a Dorado change. Read .skillrc, SKILL.index.json, and the current change files first. Keep protocol execution inside changes/active/<change> and do not confuse bootstrap with change creation.',
+        defaultPrompt: 'Use $dorado-change to create or advance a Dorado change. Read .skillrc, SKILL.index.json, workflow posture, and the current change files first. Keep protocol execution inside changes/active/<change> and do not confuse bootstrap with change creation.',
         markdown: `# Dorado Change
 
 Use this action for requirement execution after project initialization.
@@ -105,10 +133,11 @@ Use this action for requirement execution after project initialization.
 
 1. \`.skillrc\`
 2. \`SKILL.index.json\`
-3. \`changes/active/<change>/proposal.md\`
-4. \`changes/active/<change>/tasks.md\`
-5. \`changes/active/<change>/state.json\`
-6. \`changes/active/<change>/verification.md\`
+3. \`dorado workflow show\` output when workflow posture matters
+4. \`changes/active/<change>/proposal.md\`
+5. \`changes/active/<change>/tasks.md\`
+6. \`changes/active/<change>/state.json\`
+7. \`changes/active/<change>/verification.md\`
 
 ## Commands
 
@@ -442,7 +471,7 @@ class SkillCommand extends BaseCommand_1.BaseCommand {
         return `name: ${definition.name}
 title: ${definition.title}
 description: ${definition.description}
-version: 5.0.0
+version: 5.0.1
 author: Dorado Team
 license: MIT
 
@@ -517,6 +546,7 @@ Prefer this prompt style for new work:
 2. \`Use dorado to inspect this repository\`
 3. \`Use dorado to backfill the project knowledge layer\`
 4. \`Use dorado to create and advance a change for this requirement\`
+5. \`Use dorado to inspect or switch the workflow mode for this repository\`
 
 Always keep these guardrails:
 
@@ -532,6 +562,8 @@ dorado status [path]
 dorado init [path]
 dorado docs generate [path]
 dorado changes status [path]
+dorado workflow show
+dorado workflow set-mode <lite|standard|full> [path]
 dorado dashboard start [path] [--port <port>] [--no-open]
 dorado skill status
 dorado skill install
@@ -542,19 +574,19 @@ dorado skill install-claude
             skillYaml: `name: dorado-cli
 title: Dorado CLI (Legacy Alias)
 description: Legacy compatibility alias that redirects dorado-cli skill usage to the newer dorado skill name.
-version: 5.0.0
+version: 5.0.1
 author: Dorado Team
 license: MIT
 
 interface:
   display_name: "Dorado CLI"
   short_description: "Legacy alias for the Dorado skill"
-  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: protocol shell first, explicit knowledge backfill, no assumed web template when the project type is unclear, and no automatic first change."
+  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: protocol shell first, explicit knowledge backfill, no assumed web template when the project type is unclear, no automatic first change, and use dorado workflow set-mode only when repository governance must change explicitly."
 `,
             openaiYaml: `interface:
   display_name: "Dorado CLI"
   short_description: "Legacy alias for the Dorado skill"
-  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: protocol shell first, explicit knowledge backfill, no assumed web template when the project type is unclear, and no automatic first change."
+  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: protocol shell first, explicit knowledge backfill, no assumed web template when the project type is unclear, no automatic first change, and use dorado workflow set-mode only when repository governance must change explicitly."
 `,
         };
     }

@@ -173,13 +173,71 @@ class DashboardApp {
   }
 
   getModeLabel(mode) {
-    const labels = {
-      lite: this.t('modeLite'),
-      standard: this.t('modeStandard'),
-      full: this.t('modeFull'),
-    };
+    const labels = this.state.language === 'zh'
+      ? {
+          lite: '轻量',
+          standard: '平衡',
+          full: '严格',
+        }
+      : {
+          lite: 'Lite',
+          standard: 'Balanced',
+          full: 'Strict',
+        };
 
     return labels[mode] || mode || this.t('unknownValue');
+  }
+
+  getModeOptionalStepsLabel() {
+    return this.state.language === 'zh' ? '模式启用的可选步骤' : 'Mode-enabled optional steps';
+  }
+
+  getNoOptionalStepsForModeText() {
+    return this.state.language === 'zh'
+      ? '当前项目模式没有启用可选步骤。'
+      : 'No optional steps are enabled by the current project mode.';
+  }
+
+  getChangeActivatedOptionalStepsLabel() {
+    return this.state.language === 'zh'
+      ? '当前 change 激活的可选步骤'
+      : 'Change-activated optional steps';
+  }
+
+  getNoActivatedOptionalStepsForChangeText() {
+    return this.state.language === 'zh'
+      ? '当前 change 没有激活可选步骤。'
+      : 'No optional steps are activated on this change.';
+  }
+
+  getWorkflowOptionalStepsModeHint() {
+    return this.state.language === 'zh'
+      ? '这里展示的是当前项目模式允许启用的可选步骤范围，不代表每个 change 都会实际执行。'
+      : 'This shows the optional steps made available by the current project mode. It does not mean every change will execute them.';
+  }
+
+  getWorkflowOptionalStepsChangeHint() {
+    return this.state.language === 'zh'
+      ? '具体 change 只会激活与自身 flags 和 profile 匹配的可选步骤。'
+      : 'A specific change activates only the optional steps matched by that change\'s flags and profile.';
+  }
+
+  getWorkflowModeGovernanceHint() {
+    return this.state.language === 'zh'
+      ? '项目模式表达的是治理强度，不是“完整版”与“普通版”的产品分层。'
+      : 'Project mode expresses governance strength, not a separate “full edition” of Dorado.';
+  }
+
+  getWorkflowProfileDefaultHint() {
+    return this.state.language === 'zh'
+      ? '默认 profile 是仓库级回退值；具体 change 仍会通过自己的 profile 与 flags 进入不同的运行路径。'
+      : 'The default profile is the repository-level fallback. Each active change can still activate a different runtime path through its own profile and flags.';
+  }
+
+  getWorkflowProfileAvailableHint() {
+    return this.state.language === 'zh'
+      ? '这里列出的是当前仓库可兼容的 profile 选项，便于检查，不代表 dashboard 直接替你切换。'
+      : 'The dashboard lists compatible profiles for inspection. Real selection still happens through CLI or skills, and active changes persist their chosen profile.';
   }
 
   getStructureLevelLabel(level) {
@@ -1675,14 +1733,14 @@ class DashboardApp {
   presetDescription(mode) {
     const descriptions = {
       zh: {
-        lite: '适合小型仓库的快速起步流程，只保留核心工作流检查。',
-        standard: '适合大多数团队日常使用的平衡型默认工作流。',
-        full: '适合大型或高风险项目的严格工作流，启用全部治理步骤。',
+        lite: '??????????????????????????',
+        standard: '?????????????????????',
+        full: '?????????????????????????????????????????',
       },
       en: {
-        lite: 'Fast start for smaller repositories with only the essential workflow checks.',
-        standard: 'Balanced default workflow for most teams using Dorado day to day.',
-        full: 'Strict workflow with all governance steps enabled for larger or riskier projects.',
+        lite: 'Light governance for smaller repositories that only need the essential workflow checks.',
+        standard: 'Balanced default governance for most teams using Dorado day to day.',
+        full: 'Strict governance for larger or riskier projects; this is stronger policy, not a different product tier.',
       },
     };
 
@@ -3738,6 +3796,14 @@ class DashboardApp {
                     </div>
                     <p class="mt-2 text-xs leading-6 text-slate-500">${this.t('workflowProfileReasonLabel')}: ${this.escapeHtml(this.getWorkflowProfileSourceLabel(feature.workflowProfile.source))}</p>`
                   : ''}
+                <div class="mt-3">
+                  <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.getChangeActivatedOptionalStepsLabel()}</p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    ${(feature.activatedSteps || []).map(step => `
+                      <span class="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs text-amber-100">${this.getWorkflowStepLabel(step)}</span>
+                    `).join('') || `<span class="text-sm text-slate-500">${this.getNoActivatedOptionalStepsForChangeText()}</span>`}
+                  </div>
+                </div>
               </div>
               <span class="rounded-full border border-slate-700 px-3 py-1 text-xs tracking-[0.2em] text-slate-300">${this.getFeatureStatusLabel(feature.status)}</span>
             </div>
@@ -3771,6 +3837,8 @@ class DashboardApp {
     const defaultProfile = workflow.defaultProfile || this.state.execution?.defaultProfile || null;
     const availableProfiles = workflow.availableProfiles || [];
 
+    const modeEnabledOptionalSteps = workflow.mode_enabled_optional_steps || workflow.activated_steps || [];
+
     return `
       <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section class="rounded-[2rem] border border-slate-800 bg-slate-950/80 p-6">
@@ -3785,12 +3853,14 @@ class DashboardApp {
           </div>
         </section>
         <section class="rounded-[2rem] border border-slate-800 bg-slate-950/80 p-6">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('enabledOptionalSteps')}</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.getModeOptionalStepsLabel()}</p>
+          <p class="mt-3 text-sm leading-6 text-slate-500">${this.getWorkflowOptionalStepsModeHint()}</p>
           <div class="mt-5 flex flex-wrap gap-3">
-            ${(workflow.activated_steps || []).map(step => `
+            ${modeEnabledOptionalSteps.map(step => `
               <span class="rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">${this.getWorkflowStepLabel(step)}</span>
-            `).join('') || `<span class="text-sm text-slate-500">${this.t('noOptionalStepsForMode')}</span>`}
+            `).join('') || `<span class="text-sm text-slate-500">${this.getNoOptionalStepsForModeText()}</span>`}
           </div>
+          <p class="mt-4 text-xs leading-6 text-slate-500">${this.getWorkflowModeGovernanceHint()}</p>
         </section>
       </div>
       <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -3802,7 +3872,7 @@ class DashboardApp {
           ${defaultProfile
             ? `<h3 class="mt-4 text-xl font-semibold text-slate-50">${this.escapeHtml(this.getWorkflowProfileLabel(defaultProfile))}</h3>
                 <p class="mt-2 text-sm leading-6 text-slate-400">${this.escapeHtml(defaultProfile.description || '')}</p>
-                <p class="mt-3 text-xs leading-6 text-slate-500">${this.t('workflowProfileDefaultHint')}</p>
+                <p class="mt-3 text-xs leading-6 text-slate-500">${this.getWorkflowProfileDefaultHint()}</p>
                 <div class="mt-5 space-y-3 text-sm text-slate-300">
                   <div><span class="text-slate-500">${this.t('workflowProfileReasonLabel')}:</span> ${this.escapeHtml(this.getWorkflowProfileSourceLabel(defaultProfile.source))}</div>
                   <div><span class="text-slate-500">${this.t('workflowProfileProtocolFilesLabel')}:</span> ${this.escapeHtml((defaultProfile.minimumProtocolFiles || []).join(', ') || '-')}</div>
@@ -3816,7 +3886,7 @@ class DashboardApp {
             <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('workflowProfilesAvailableLabel')}</p>
             <span class="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">${availableProfiles.length}</span>
           </div>
-          <p class="mt-3 text-sm leading-6 text-slate-500">${this.t('workflowProfileAvailableHint')}</p>
+          <p class="mt-3 text-sm leading-6 text-slate-500">${this.getWorkflowProfileAvailableHint()}</p>
           <div class="mt-5 grid gap-3">
             ${availableProfiles.map(profile => `
               <article class="rounded-2xl border ${profile.id === defaultProfile?.id ? 'border-emerald-500/25 bg-emerald-500/8' : 'border-slate-800 bg-slate-900/80'} px-4 py-4">
@@ -3831,6 +3901,7 @@ class DashboardApp {
               </article>
             `).join('') || `<p class="text-sm text-slate-500">${this.t('unknownValue')}</p>`}
           </div>
+          <p class="mt-4 text-xs leading-6 text-slate-500">${this.getWorkflowOptionalStepsChangeHint()}</p>
         </section>
       </div>
     `;

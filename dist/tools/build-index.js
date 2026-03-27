@@ -8,6 +8,15 @@ const { spawnSync } = require('child_process');
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', 'changes', 'for-ai']);
 const INDEX_FILE = 'SKILL.index.json';
 const SKILL_FILE = 'SKILL.md';
+const OPTIONAL_STEP_PROTOCOL_FILES = {
+  code_review: 'review.md',
+  design_doc: 'design.md',
+  plan_doc: 'plan.md',
+  security_review: 'security.md',
+  adr: 'adr.md',
+  db_change_doc: 'db-change.md',
+  api_change_doc: 'api-change.md',
+};
 
 async function main() {
   try {
@@ -322,6 +331,35 @@ async function buildChangeSummary(rootDir, changeName, config) {
           ? 'verification.md checklist is complete'
           : 'verification.md still has unchecked items',
     });
+  }
+
+  for (const step of activatedSteps) {
+    const fileName = OPTIONAL_STEP_PROTOCOL_FILES[step];
+    if (!fileName) {
+      continue;
+    }
+
+    const filePath = path.join(featureDir, fileName);
+    const fileExists = await exists(filePath);
+    checks.push({
+      name: fileName,
+      status: fileExists ? 'pass' : 'fail',
+      message: fileExists
+        ? `${fileName} exists for activated optional step ${step}`
+        : `${fileName} is required when ${step} is activated`,
+    });
+
+    if (fileExists) {
+      const document = parseFrontmatter(await fsp.readFile(filePath, 'utf8'));
+      const checklistComplete = !/- \[ \]/.test(document.body);
+      checks.push({
+        name: `${fileName}.checklist`,
+        status: checklistComplete ? 'pass' : 'warn',
+        message: checklistComplete
+          ? `${fileName} checklist is complete`
+          : `${fileName} still has unchecked items`,
+      });
+    }
   }
 
   const hasProtocolIssues = checks.some(check => check.status !== 'pass');

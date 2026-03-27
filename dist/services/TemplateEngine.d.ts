@@ -1,4 +1,5 @@
 import { ProjectMode } from '../core/types';
+import { OptionalStep } from '../workflow';
 export type { BootstrapFieldKey, BootstrapFieldSource, FeatureProjectContext, FeatureProjectReference, FeatureTemplateInput, NormalizedFeatureTemplateInput, NormalizedProjectBootstrapInput, PlannedProjectFile, ProjectBootstrapInput, TemplateDocumentLanguage, } from './templates/templateTypes';
 import { FeatureTemplateInput, NormalizedFeatureTemplateInput, NormalizedProjectBootstrapInput, ProjectBootstrapInput } from './templates/templateTypes';
 export declare class TemplateEngine {
@@ -16,6 +17,7 @@ export declare class TemplateEngine {
     generateTasksTemplate(input: string | FeatureTemplateInput): string;
     generateVerificationTemplate(input: string | FeatureTemplateInput): string;
     generateReviewTemplate(input: string | FeatureTemplateInput): string;
+    generateOptionalStepTemplate(step: OptionalStep, input: string | FeatureTemplateInput): string;
     generateProjectReadmeTemplate(fallbackName: string, mode: ProjectMode, input?: ProjectBootstrapInput): string;
     generateRootSkillTemplate(fallbackName: string, mode: ProjectMode, input?: ProjectBootstrapInput): string;
     generateDocsSkillTemplate(fallbackName: string, input?: ProjectBootstrapInput): string;

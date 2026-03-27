@@ -1,4 +1,5 @@
 import { FeatureState, FeatureStatus, ProjectMode } from '../core/types';
+import { WorkflowProfileId } from '../workflow/WorkflowProfiles';
 import { FileService } from './FileService';
 export declare class StateManager {
     private fileService;
@@ -7,7 +8,7 @@ export declare class StateManager {
     writeState(featurePath: string, state: FeatureState): Promise<void>;
     validateTransition(currentStatus: FeatureStatus, targetStatus: FeatureStatus): boolean;
     transitionStatus(featurePath: string, targetStatus: FeatureStatus): Promise<void>;
-    createInitialState(feature: string, affects: string[], mode?: ProjectMode): FeatureState;
+    createInitialState(feature: string, affects: string[], mode?: ProjectMode, workflowProfileId?: WorkflowProfileId): FeatureState;
 }
 export declare function createStateManager(fileService: FileService): StateManager;
 //# sourceMappingURL=StateManager.d.ts.map

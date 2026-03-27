@@ -14,4 +14,8 @@ export { ArchiveGate, archiveGate } from './ArchiveGate';
 export type { ArchiveGateConfig, ArchiveCheckResult } from './ArchiveGate';
 export { ConfigurableWorkflow, WORKFLOW_PRESETS } from './ConfigurableWorkflow';
 export type { CoreStep, OptionalStep, OptionalStepConfig, WorkflowConfigType } from './ConfigurableWorkflow';
+export { OPTIONAL_STEP_PROTOCOL_ASSETS, getOptionalStepProtocolAsset, getOptionalStepProtocolAssets, } from './OptionalStepProtocolAssets';
+export type { OptionalStepProtocolAsset } from './OptionalStepProtocolAssets';
+export { WORKFLOW_PROFILE_CATALOG, getModeDefaultWorkflowProfileId, inferWorkflowProfileIdFromFlags, isWorkflowProfileId, resolveWorkflowProfileIdForChange, } from './WorkflowProfiles';
+export type { WorkflowProfileDefinition, WorkflowProfileId, WorkflowProfileResolutionSource, } from './WorkflowProfiles';
 //# sourceMappingURL=index.d.ts.map

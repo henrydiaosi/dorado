@@ -1,33 +1,41 @@
-﻿# 项目介绍
+# 项目介绍
+
+[English](project-overview.md) | [简体中文](project-overview.zh-CN.md)
 
 ## Dorado 是什么
 
-Dorado 是一个面向 AI 协作交付的 CLI 工作流系统。
+Dorado 是一个以协议壳优先为核心的 AI 协作 CLI。
 
-它不是在初始化时直接塞一个固定模板，而是先建立协议壳和协作规则，后续再根据项目真实方向，显式补齐文档、skills 和 change 流程。
+它先建立共享协作协议，而不是先塞进业务模板。仓库可以在一开始保持最小化，然后再通过项目知识层、skills 和 change 记录逐步长出具体结构。
 
-## 核心原则
+## Dorado 不是什么
 
-- 普通 `dorado init` 只做最小初始化，不会自动创建 web 模板、业务 scaffold，也不会自动生成第一个 change。
-- 项目文档属于项目层。Dorado 协议规则放在 `.dorado/`、`for-ai/`、根目录 skill 文件和 change 记录这些 Dorado 资产里。
-- change 工作流应当可配置。不同复杂度的步骤集可以并存，由用户按场景切换。
-- Git hooks 只应该关注真实执行状态。空项目保持安静，有 active changes 时再做检查和阻断。
-- dashboard 主要负责查看状态和进度，不承担项目生成逻辑。
+Dorado 不是固定的 Web 脚手架，不是强制业务模板生成器，也不是以 dashboard 为中心的项目构建器。
 
-## 适用场景
+Dashboard 的定位是 inspection-first。它负责展示当前状态、active changes、workflow profile 和协议缺口，但主执行链路仍然由 CLI 与 skills 驱动。
 
-- 希望 AI 在仓库内按统一规则协作
-- 希望需求执行过程可见、可检查、可归档
-- 项目类型可能是 web、CLI、Unity、Godot、后端服务或纯协议仓库
-- 需要同时适配 Codex 与 Claude Code
+## 核心模型
 
-## 当前能力
+- `dorado init` 只创建协议壳。
+- 项目相关知识层通过显式动作补齐，例如 `dorado docs generate`。
+- 工作通过 `changes/active/` 下的 change 进行跟踪。
+- 一个完成的 change 通常通过 `dorado finalize` 收口，它会先验证、再刷新索引、再归档，让仓库进入可手动提交状态。
+- 已归档 change 用于保留历史。后续新增需求应创建新的 change，而不是把已归档记录直接改回活跃执行。
+
+## 为什么采用这种模型
+
+- 有些仓库根本不是 Web 项目
+- 有些团队需要延后结构决策
+- AI 客户端在业务文件出现前，先需要稳定协议规则
+- change 状态应该通过文件可审阅、可验证，而不只存在于聊天记录里
+
+## 当前发布版能力
 
 - 协议壳优先初始化
-- 显式项目知识层补齐
-- active change 执行流程管理
-- 标准 `finalize -> archive -> 可提交` 收口流程
-- `PASS / WARN / FAIL` 聚合状态检查
-- 面向 active changes 的 Git hooks 阻断
-- dashboard 可视化查看
+- 显式触发的项目知识层补齐
+- 可配置的 workflow profile 与可选治理步骤
+- active change 验证与状态检查
+- `finalize -> archive -> 可提交` 收口流程
+- 针对 active change 的 Git hooks 阻断
+- inspection-first dashboard
 - Codex 与 Claude Code skills 安装和同步

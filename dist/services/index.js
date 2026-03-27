@@ -67,7 +67,7 @@ class ServiceContainer {
         this.projectAssetService = (0, ProjectAssetService_2.createProjectAssetService)(FileService_2.fileService);
         this.projectScaffoldService = (0, ProjectScaffoldService_2.createProjectScaffoldService)(FileService_2.fileService);
         this.projectScaffoldCommandService = (0, ProjectScaffoldCommandService_2.createProjectScaffoldCommandService)(FileService_2.fileService, Logger_2.logger);
-        this.projectService = (0, ProjectService_2.createProjectService)(FileService_2.fileService, this.configManager, TemplateEngine_2.templateEngine, this.indexBuilder, this.skillParser, this.projectAssetService, this.projectScaffoldService, this.projectScaffoldCommandService);
+        this.projectService = (0, ProjectService_2.createProjectService)(FileService_2.fileService, this.configManager, TemplateEngine_2.templateEngine, this.indexBuilder, this.skillParser, this.stateManager, this.projectAssetService, this.projectScaffoldService, this.projectScaffoldCommandService);
     }
     static getInstance() {
         if (!ServiceContainer.instance) {

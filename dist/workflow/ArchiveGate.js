@@ -79,6 +79,25 @@ class ArchiveGate {
             if (!protocolState.verificationComplete) {
                 blockers.push('verification.md still has unchecked items');
             }
+            for (const document of protocolState.optionalStepDocuments) {
+                const passed = document.exists && document.checklistComplete;
+                checks.push({
+                    name: `${document.step} Protocol Asset`,
+                    passed,
+                    message: !document.exists
+                        ? `${document.fileName} is required when ${document.step} is activated`
+                        : document.checklistComplete
+                            ? `${document.fileName} exists and checklist is complete`
+                            : `${document.fileName} still has unchecked items`,
+                });
+                if (!document.exists) {
+                    blockers.push(`${document.fileName} is required when ${document.step} is activated`);
+                    continue;
+                }
+                if (!document.checklistComplete) {
+                    blockers.push(`${document.fileName} still has unchecked items`);
+                }
+            }
         }
         return {
             canArchive: blockers.length === 0,

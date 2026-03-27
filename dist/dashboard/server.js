@@ -15,50 +15,9 @@ const util_1 = require("util");
 const constants_1 = require("../core/constants");
 const services_1 = require("../services");
 const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
+const workflow_1 = require("../workflow");
 const ProjectPresets_1 = require("../presets/ProjectPresets");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
-const WORKFLOW_PROFILE_CATALOG = {
-    'minimal-change': {
-        label: 'Minimal Change',
-        description: 'A lightweight protocol for small, low-risk changes.',
-        minimumProtocolFiles: ['state.json', 'tasks.md', 'verification.md'],
-        optionalSteps: ['code_review'],
-        archiveFocus: ['verification', 'tasks completeness'],
-        recommendedModes: ['lite'],
-    },
-    'standard-change': {
-        label: 'Standard Change',
-        description: 'The balanced default profile for most day-to-day changes.',
-        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
-        optionalSteps: ['code_review', 'design_doc', 'plan_doc', 'security_review', 'api_change_doc'],
-        archiveFocus: ['verification', 'skill update', 'index regeneration'],
-        recommendedModes: ['standard', 'full'],
-    },
-    'architecture-change': {
-        label: 'Architecture Change',
-        description: 'A heavier profile for architectural refactors and important decisions.',
-        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
-        optionalSteps: ['design_doc', 'adr', 'db_change_doc', 'code_review'],
-        archiveFocus: ['design decisions', 'ADR alignment', 'verification'],
-        recommendedModes: ['full'],
-    },
-    'public-api-change': {
-        label: 'Public API Change',
-        description: 'A profile for externally visible API or contract changes.',
-        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
-        optionalSteps: ['api_change_doc', 'code_review', 'security_review'],
-        archiveFocus: ['API contract verification', 'compatibility notes'],
-        recommendedModes: ['standard', 'full'],
-    },
-    'security-change': {
-        label: 'Security Change',
-        description: 'A profile for auth, permission, or security-sensitive work.',
-        minimumProtocolFiles: ['state.json', 'proposal.md', 'tasks.md', 'verification.md', 'review.md'],
-        optionalSteps: ['security_review', 'code_review'],
-        archiveFocus: ['security review', 'verification evidence'],
-        recommendedModes: ['standard', 'full'],
-    },
-};
 class DashboardServer {
     constructor(config = {}) {
         this.server = null;
@@ -287,19 +246,37 @@ class DashboardServer {
                 await this.ensureInitialized();
                 const config = await this.loadProjectConfig();
                 const workflow = new ConfigurableWorkflow_1.ConfigurableWorkflow(config.mode);
-                const defaultProfile = this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(config.mode), 'mode-default', config.mode);
+                const defaultProfile = this.resolveWorkflowProfile((0, workflow_1.getModeDefaultWorkflowProfileId)(config.mode), 'mode-default', config.mode);
                 res.json({
                     mode: workflow.getMode(),
                     core_steps: workflow.getCoreSteps(),
                     optional_steps: config.workflow?.optional_steps ?? workflow.getConfig().optional_steps,
+                    mode_enabled_optional_steps: this.getEnabledOptionalSteps(config),
                     activated_steps: this.getEnabledOptionalSteps(config),
+                    legacyAliases: {
+                        activated_steps: {
+                            aliasOf: 'mode_enabled_optional_steps',
+                            status: 'compatibility-only',
+                            semantics: 'Repository-mode optional steps only. Per-change runtime activation is exposed in execution status.',
+                        },
+                    },
                     supported_flags: config.workflow?.feature_flags.supported ?? workflow.getSupportedFlags(),
                     defaultProfile,
                     availableProfiles: this.getWorkflowProfilesForMode(config.mode),
+                    modePresentation: {
+                        lite: { label: 'Lite', governance: 'light' },
+                        standard: { label: 'Balanced', governance: 'balanced' },
+                        full: { label: 'Strict', governance: 'strict' },
+                    },
+                    optionalStepRuntimePolicy: {
+                        modeScope: 'Project mode controls which optional steps are available in this repository.',
+                        changeScope: 'A specific change activates only the optional steps matched by that change\'s flags and profile.',
+                        enforcementSource: 'Active change verification, archive, and hooks read the actual activated steps and protocol assets from each change.',
+                    },
                     profileDisplayPolicy: {
                         phase: 'inspection-first',
                         changeSelectionOwnedBy: 'cli_or_skill',
-                        runtimeModel: 'compatibility_inference_until_profile_runtime_lands',
+                        runtimeModel: 'persisted-profile-plus-per-change-flags',
                     },
                 });
             }
@@ -824,10 +801,19 @@ class DashboardServer {
         }
         const flags = (payload.flags ?? []).map(flag => flag.trim()).filter(Boolean);
         const flagValidation = workflow.validateFlags(flags);
+        const requestedWorkflowProfileId = payload.workflowProfileId?.trim();
         if (!flagValidation.valid) {
             throw new Error(`Unsupported flags for ${config.mode} mode: ${flagValidation.unsupported.join(', ')}`);
         }
+        if (requestedWorkflowProfileId && !(0, workflow_1.isWorkflowProfileId)(requestedWorkflowProfileId)) {
+            throw new Error(`Unsupported workflow profile: ${requestedWorkflowProfileId}`);
+        }
         const optionalSteps = workflow.getActivatedSteps(flags);
+        const workflowProfileId = (0, workflow_1.resolveWorkflowProfileIdForChange)({
+            mode: config.mode,
+            explicitProfileId: requestedWorkflowProfileId,
+            flags,
+        }).id;
         const affects = (payload.affects ?? []).map(item => item.trim()).filter(Boolean);
         const projectContext = await services_1.services.projectService.getFeatureProjectContext(this.config.projectPath, affects);
         const goals = (payload.goals ?? []).map(item => item.trim()).filter(Boolean);
@@ -837,7 +823,7 @@ class DashboardServer {
             .map(item => item.trim())
             .filter(Boolean);
         await services_1.services.fileService.ensureDir(featureDir);
-        await services_1.services.fileService.writeJSON(path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(name, affects, config.mode));
+        await services_1.services.fileService.writeJSON(path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(name, affects, config.mode, workflowProfileId));
         await services_1.services.fileService.writeFile(path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL), services_1.services.templateEngine.generateProposalTemplate({
             feature: name,
             mode: config.mode,
@@ -894,6 +880,22 @@ class DashboardServer {
             projectContext,
             documentLanguage: payload.documentLanguage,
         }));
+        for (const asset of (0, workflow_1.getOptionalStepProtocolAssets)(optionalSteps).filter(item => item.step !== 'code_review')) {
+            await services_1.services.fileService.writeFile(path_1.default.join(featureDir, asset.fileName), services_1.services.templateEngine.generateOptionalStepTemplate(asset.step, {
+                feature: name,
+                mode: config.mode,
+                affects,
+                flags,
+                optionalSteps,
+                background: payload.background,
+                goals,
+                inScope,
+                outOfScope,
+                acceptanceCriteria,
+                projectContext,
+                documentLanguage: payload.documentLanguage,
+            }));
+        }
         const state = await services_1.services.stateManager.readState(featureDir);
         return {
             name,
@@ -901,14 +903,15 @@ class DashboardServer {
             progress: this.calculateProgress(state),
             currentStep: state.current_step,
             flags,
+            activatedSteps: optionalSteps,
             description: payload.background?.trim() || 'No description yet',
         };
     }
     getWorkflowPresetDescription(mode) {
         const descriptions = {
-            lite: 'Fast start for smaller repositories with only essential workflow checks.',
-            standard: 'Balanced default workflow for most teams using Dorado day to day.',
-            full: 'Strict workflow with all governance steps enabled for larger or riskier projects.',
+            lite: 'Light governance for smaller repositories that only need the essential workflow checks.',
+            standard: 'Balanced default governance for most teams using Dorado day to day.',
+            full: 'Strict governance for larger or riskier projects; this is stronger policy, not a different product tier.',
         };
         return descriptions[mode];
     }
@@ -920,24 +923,11 @@ class DashboardServer {
             .filter(([, optionalConfig]) => optionalConfig.enabled)
             .map(([stepName]) => stepName);
     }
-    isWorkflowProfileId(value) {
-        return Boolean(value && value in WORKFLOW_PROFILE_CATALOG);
-    }
-    getModeDefaultWorkflowProfileId(mode) {
-        switch (mode) {
-            case 'lite':
-                return 'minimal-change';
-            case 'standard':
-            case 'full':
-            default:
-                return 'standard-change';
-        }
-    }
     getWorkflowProfilesForMode(mode) {
-        return Object.keys(WORKFLOW_PROFILE_CATALOG).map(profileId => this.resolveWorkflowProfile(profileId, profileId === this.getModeDefaultWorkflowProfileId(mode) ? 'mode-default' : 'explicit', mode));
+        return Object.keys(workflow_1.WORKFLOW_PROFILE_CATALOG).map(profileId => this.resolveWorkflowProfile(profileId, profileId === (0, workflow_1.getModeDefaultWorkflowProfileId)(mode) ? 'mode-default' : 'explicit', mode));
     }
     resolveWorkflowProfile(profileId, source, mode) {
-        const definition = WORKFLOW_PROFILE_CATALOG[profileId];
+        const definition = workflow_1.WORKFLOW_PROFILE_CATALOG[profileId];
         const reasonBySource = {
             explicit: 'Shown as an available workflow profile for inspection.',
             'flag-inference': 'Inferred from the active change flags for compatibility display.',
@@ -957,19 +947,6 @@ class DashboardServer {
             reason: reasonBySource[source],
         };
     }
-    inferWorkflowProfileIdFromFlags(flags) {
-        const set = new Set(flags);
-        if (set.has('security_related') || set.has('auth') || set.has('payment')) {
-            return 'security-change';
-        }
-        if (set.has('public_api_change')) {
-            return 'public-api-change';
-        }
-        if (set.has('architecture_change') || set.has('important_decision') || set.has('db_schema_change')) {
-            return 'architecture-change';
-        }
-        return null;
-    }
     async loadProjectSummary() {
         return services_1.services.projectService.getProjectSummary(this.config.projectPath);
     }
@@ -979,7 +956,7 @@ class DashboardServer {
     async loadDashboardExecutionStatus() {
         const execution = await this.loadExecutionStatus();
         const config = await this.loadProjectConfig();
-        const defaultProfile = this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(config.mode), 'mode-default', config.mode);
+        const defaultProfile = this.resolveWorkflowProfile((0, workflow_1.getModeDefaultWorkflowProfileId)(config.mode), 'mode-default', config.mode);
         if (execution.activeChanges.length === 0) {
             return {
                 ...execution,
@@ -1003,26 +980,22 @@ class DashboardServer {
         };
     }
     async resolveWorkflowProfileForChange(featureDir, state, flags) {
-        if (this.isWorkflowProfileId(state.workflow_profile_id)) {
-            return this.resolveWorkflowProfile(state.workflow_profile_id, 'explicit', state.mode);
-        }
-        const inferredByFlags = this.inferWorkflowProfileIdFromFlags(flags);
-        if (inferredByFlags) {
-            return this.resolveWorkflowProfile(inferredByFlags, 'flag-inference', state.mode);
-        }
         const [hasProposal, hasTasks, hasVerification, hasReview] = await Promise.all([
             services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL)),
             services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.TASKS)),
             services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.VERIFICATION)),
             services_1.services.fileService.exists(path_1.default.join(featureDir, constants_1.FILE_NAMES.REVIEW)),
         ]);
-        if (hasTasks && hasVerification && !hasProposal && !hasReview) {
-            return this.resolveWorkflowProfile('minimal-change', 'legacy-file-set', state.mode);
-        }
-        if (hasProposal && hasTasks && hasVerification && hasReview) {
-            return this.resolveWorkflowProfile('standard-change', 'legacy-file-set', state.mode);
-        }
-        return this.resolveWorkflowProfile(this.getModeDefaultWorkflowProfileId(state.mode), 'mode-default', state.mode);
+        const resolvedProfile = (0, workflow_1.resolveWorkflowProfileIdForChange)({
+            mode: state.mode,
+            explicitProfileId: state.workflow_profile_id,
+            flags,
+            hasProposal,
+            hasTasks,
+            hasVerification,
+            hasReview,
+        });
+        return this.resolveWorkflowProfile(resolvedProfile.id, resolvedProfile.source, state.mode);
     }
     calculateProgress(state) {
         const total = state.completed.length + state.pending.length;

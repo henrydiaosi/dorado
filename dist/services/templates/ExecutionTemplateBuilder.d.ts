@@ -1,6 +1,7 @@
 import { TemplateBuilderBase } from './TemplateBuilderBase';
 import { TemplateInputFactory } from './TemplateInputFactory';
 import { FeatureTemplateInput } from './templateTypes';
+import { OptionalStep } from '../../workflow';
 export declare class ExecutionTemplateBuilder extends TemplateBuilderBase {
     private readonly inputs;
     constructor(inputs: TemplateInputFactory);
@@ -8,5 +9,7 @@ export declare class ExecutionTemplateBuilder extends TemplateBuilderBase {
     generateTasksTemplate(input: string | FeatureTemplateInput): string;
     generateVerificationTemplate(input: string | FeatureTemplateInput): string;
     generateReviewTemplate(input: string | FeatureTemplateInput): string;
+    generateOptionalStepTemplate(step: OptionalStep, input: string | FeatureTemplateInput): string;
+    private getOptionalStepLabels;
 }
 //# sourceMappingURL=ExecutionTemplateBuilder.d.ts.map

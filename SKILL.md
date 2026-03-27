@@ -159,6 +159,8 @@ dorado index check [path]
 dorado index build [path]
 dorado workflow show
 dorado workflow list-flags
+dorado workflow set-mode <lite|standard|full> [path]
+dorado workflow set-mode <lite|standard|full> [path] --force-active
 dorado progress [changes/active/<change>]
 dorado verify [changes/active/<change>]
 dorado archive [changes/active/<change>]
@@ -177,6 +179,7 @@ The default `dorado skill install` and `dorado skill install-claude` commands no
 - `dorado-inspect`
 - `dorado-backfill`
 - `dorado-change`
+- `dorado-workflow`
 - `dorado-verify`
 - `dorado-archive`
 - `dorado-finalize`
@@ -195,6 +198,8 @@ For plain init, stop after `dorado init [path]` and verify the protocol-shell as
 For completed changes, archive before commit. Use `dorado archive [changes/active/<change>]` to execute the archive and `--check` only when you want a readiness preview without moving files.
 
 For the normal closeout path, prefer `dorado finalize [changes/active/<change>]`. It should verify completeness, rebuild the index, archive the change, and leave Git commit as a separate manual step.
+
+For repository governance changes, prefer `dorado workflow set-mode <lite|standard|full> [path]`. By default, mode switching is blocked when active changes exist. Use `--force-active` only when you intentionally want the repository mode and current active changes updated together.
 
 ## Dashboard Use Rules
 
