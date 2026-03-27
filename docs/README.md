@@ -4,22 +4,18 @@
 
 Public documentation for the Dorado release repository.
 
-Recommended reading order:
+Recommended reading order for normal users:
 
-1. [Project Overview](project-overview.md)
-2. [Installation](installation.md)
-3. [Usage](usage.md)
-4. [Prompt Guide](prompt-guide.md)
-5. [Skills Installation](skills-installation.md)
-6. [Skills Usage](skills-usage.md)
-7. [Workflow Modes](workflow-modes.md)
+1. [Prompt Guide](prompt-guide.md)
+2. [Skills Usage](skills-usage.md)
+3. [Skills Installation](skills-installation.md)
+4. [Project Overview](project-overview.md)
+5. [Usage](usage.md)
+6. [Workflow Modes](workflow-modes.md)
+7. [Installation](installation.md)
 
-Document scope:
+This documentation is intentionally skills-first:
 
-- what Dorado is and what it is not
-- how to install and upgrade the release correctly
-- how the current change workflow actually runs
-- how to prompt AI clients with Dorado in short, stable language
-- how to install Dorado skills for Codex and Claude Code
-- how to use Dorado through skills instead of direct CLI commands
-- how repository mode, workflow profile, flags, and optional steps relate
+- first explain how to talk to Dorado
+- then explain how Dorado interprets those requests
+- only then drop to raw CLI command reference

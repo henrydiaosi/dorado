@@ -39,7 +39,7 @@ async function main() {
     console.log(`[release:smoke] using temp dir: ${tempDir}`);
 
     let output = run('node', [cliPath, '--help']);
-    assertContains(output, 'Dorado CLI v0.5.2', 'root help');
+    assertContains(output, 'Dorado CLI v0.10.1', 'root help');
     assertContains(output, 'dorado doctor', 'root help');
 
     output = run('node', [path.join(rootDir, 'scripts', 'release-doctor.js')]);
@@ -179,7 +179,7 @@ async function main() {
     assertContains(output, 'Index Status', 'index status output');
 
     output = run('node', [cliPath, 'new', 'release-smoke', tempDir]);
-    assertContains(output, 'Change release-smoke created', 'new change output');
+    assertContains(output, 'Active change release-smoke created', 'new change output');
 
     const featureDir = path.join(tempDir, 'changes', 'active', 'release-smoke');
     const statePath = path.join(featureDir, 'state.json');

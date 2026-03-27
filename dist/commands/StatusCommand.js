@@ -24,6 +24,7 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
             console.log(`Initialized: ${summary.initialized ? 'yes' : 'no'}`);
             console.log(`Structure Level: ${summary.structureLevel}`);
             console.log(`Active Changes: ${summary.activeChangeCount}`);
+            console.log(`Queued Changes: ${execution.totalQueuedChanges}`);
             console.log('\nStructure');
             console.log('---------');
             console.log(`Missing required: ${structure.missingRequired.length}`);
@@ -59,6 +60,7 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
             console.log('\nExecution');
             console.log('---------');
             console.log(`Active changes: ${execution.totalActiveChanges}`);
+            console.log(`Queued changes: ${execution.totalQueuedChanges}`);
             for (const [status, count] of Object.entries(execution.byStatus)) {
                 console.log(`  ${status}: ${count}`);
             }
@@ -67,6 +69,12 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
                 console.log('\nCurrent changes:');
                 for (const change of execution.activeChanges) {
                     console.log(`  - ${change.name} [${change.status}] ${change.progress}%`);
+                }
+            }
+            if (execution.queuedChanges.length > 0) {
+                console.log('\nQueued changes:');
+                for (const change of execution.queuedChanges) {
+                    console.log(`  - ${change.name} [${change.status}]`);
                 }
             }
             console.log('\nRecommended Next Step');
@@ -96,6 +104,14 @@ class StatusCommand extends BaseCommand_1.BaseCommand {
             ];
         }
         if (execution.totalActiveChanges === 0) {
+            if (execution.totalQueuedChanges > 0) {
+                const nextQueued = execution.queuedChanges[0];
+                return [
+                    `There is no active change, but ${execution.totalQueuedChanges} queued change(s) are waiting.`,
+                    `Run "dorado queue next ${projectPath}" to activate ${nextQueued?.name ?? 'the next queued change'}.`,
+                    `Or run "dorado queue status ${projectPath}" to inspect the full queue.`,
+                ];
+            }
             return [
                 `Run "dorado dashboard start ${projectPath}" to create the first change through the GUI.`,
                 `Or run "dorado new <change-name> ${projectPath}" if you want to create the first change from CLI.`,

@@ -1,4 +1,4 @@
-import { ActiveChangeStatusItem, ActiveChangeStatusReport, DocsStatus, ExecutionStatus, KnowledgeDocInfo, ModuleInfo, ProjectMode, ProjectStructureStatus, ProjectSummary, SkillsStatus } from '../core/types';
+import { ActiveChangeStatusItem, ActiveChangeStatusReport, DocsStatus, ExecutionStatus, FeatureState, KnowledgeDocInfo, ModuleInfo, ProjectMode, ProjectStructureStatus, ProjectSummary, QueuedChangeSummary, SkillsStatus } from '../core/types';
 import { ConfigManager } from './ConfigManager';
 import { FileService } from './FileService';
 import { IndexBuilder } from './IndexBuilder';
@@ -10,6 +10,7 @@ import { StateManager } from './StateManager';
 import { TemplateEngine } from './TemplateEngine';
 import { FeatureProjectContext, ProjectBootstrapInput } from './TemplateEngine';
 import { ProjectPresetFirstChangeSuggestion } from '../presets/ProjectPresets';
+import { archiveGate } from '../workflow/ArchiveGate';
 interface BootstrapStructurePolicy {
     minimumRequiredPaths: string[];
     recommendedPaths: string[];
@@ -125,6 +126,21 @@ export declare class ProjectService {
     getExecutionStatus(rootDir: string): Promise<ExecutionStatus>;
     getActiveChangeStatusReport(rootDir: string): Promise<ActiveChangeStatusReport>;
     getActiveChangeStatusItem(featurePath: string): Promise<ActiveChangeStatusItem>;
+    checkArchiveReadiness(featurePath: string): Promise<{
+        featureState: FeatureState;
+        result: Awaited<ReturnType<typeof archiveGate.checkArchiveReadiness>>;
+    }>;
+    archiveChange(featurePath: string): Promise<string>;
+    finalizeChange(featurePath: string): Promise<{
+        archivePath: string;
+        preflight: ActiveChangeStatusItem;
+    }>;
+    listActiveChangeNames(rootDir: string): Promise<string[]>;
+    hasActiveChanges(rootDir: string): Promise<boolean>;
+    listQueuedChangeNames(rootDir: string): Promise<string[]>;
+    getQueuedChanges(rootDir: string): Promise<QueuedChangeSummary[]>;
+    activateQueuedChange(rootDir: string, changeName: string, source?: FeatureState['source']): Promise<string>;
+    activateNextQueuedChange(rootDir: string, source?: FeatureState['source']): Promise<QueuedChangeSummary | null>;
     getFeatureProjectContext(rootDir: string, affects?: string[]): Promise<FeatureProjectContext>;
     getDocsStatus(rootDir: string): Promise<DocsStatus>;
     getSkillsStatus(rootDir: string): Promise<SkillsStatus>;
@@ -179,7 +195,6 @@ export declare class ProjectService {
     private isProtocolShellRootSkill;
     private detectProtocolShellRootSkillLanguage;
     private refreshProtocolShellRootSkillIfManaged;
-    private listActiveChangeNames;
     private updateActiveChangeModes;
     private createEmptyScaffoldResult;
     private applyProjectScaffoldPhase;
@@ -197,7 +212,14 @@ export declare class ProjectService {
     private buildActiveChangeStatusItem;
     private analyzeChecklistDocument;
     private analyzeVerificationDocument;
+    private analyzeStateProtocolAlignment;
     private analyzeOptionalStepProtocolAssets;
+    private resolveActiveChangePaths;
+    private reconcileStateForFinalize;
+    private assertFinalizeStateConsistency;
+    private performArchive;
+    private resolveArchiveDirName;
+    private updateProposalStatus;
     private maxUpdatedAt;
     private getLatestUpdatedAt;
     private shouldRebuildIndex;

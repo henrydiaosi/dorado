@@ -8,6 +8,7 @@ export declare class ConfigManager {
     getMode(rootDir: string): Promise<ProjectMode>;
     isInitialized(rootDir: string): Promise<boolean>;
     createDefaultConfig(mode?: ProjectMode): Promise<SkillrcConfig>;
+    validateConfig(config: SkillrcConfig): string[];
     private normalizeConfig;
 }
 export declare function createConfigManager(fileService: FileService): ConfigManager;

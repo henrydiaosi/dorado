@@ -7,7 +7,7 @@
 - Node.js `>= 18`
 - npm `>= 8`
 
-## 从发布仓库安装
+## 从当前发布仓库安装
 
 在 Dorado 发布仓库根目录执行：
 
@@ -16,7 +16,7 @@ npm install
 npm install -g .
 ```
 
-这个发布仓库已经包含可发布的 CLI 产物。安装时应该基于完整仓库根目录执行，而不是手工拷贝 `dist/` 或少量单独文件。
+这个仓库已经包含可发布的 CLI 产物。安装时应基于完整发布仓库执行，不要只复制 `dist/` 或零散脚本文件。
 
 ## 安装后验证
 
@@ -34,19 +34,25 @@ npm run doctor
 
 ## 升级方式
 
-先同步完整发布仓库，再重新安装：
+支持的升级路径是：
 
-```bash
-npm install
-npm install -g .
-dorado doctor
-```
+1. 同步最新完整发布仓库
+2. 执行 `npm install`
+3. 执行 `npm install -g .`
+4. 执行 `dorado doctor`
 
-如果你同时使用 Dorado skills，CLI 升级后再同步一次：
+如果你同时使用 skills，CLI 升级后再同步一次：
 
 ```bash
 dorado skill install
 dorado skill install-claude
+```
+
+然后验证：
+
+```bash
+dorado skill status
+dorado skill status-claude
 ```
 
 ## 可选发布冒烟检查
@@ -57,6 +63,6 @@ npm run release:smoke
 
 ## 升级规则
 
-- 不要把少量发布文件覆盖到旧目录上当成升级。
-- 不要只拷贝 `dist/cli.js`、`dist/` 或单个脚本。
-- 支持的升级路径是：同步完整发布仓库，全局重装，然后执行 `dorado doctor`。
+- 不要把少量文件覆盖到旧发布目录上当成升级
+- 不要只复制 `dist/cli.js` 就当成完成升级
+- 始终基于完整同步后的发布仓库进行升级

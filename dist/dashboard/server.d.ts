@@ -38,6 +38,7 @@ export declare class DashboardServer {
     private resolveWorkflowProfile;
     private loadProjectSummary;
     private loadExecutionStatus;
+    private loadRunStatus;
     private loadDashboardExecutionStatus;
     private resolveWorkflowProfileForChange;
     private calculateProgress;

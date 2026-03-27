@@ -13,6 +13,7 @@ class DashboardApp {
       skillsStatus: null,
       execution: null,
       features: [],
+      queuedFeatures: [],
       workflow: null,
       flags: [],
       bootstrap: null,
@@ -251,7 +252,9 @@ class DashboardApp {
   }
 
   getFeatureStatusLabel(status) {
+    const queuedLabel = this.t('statusQueued');
     const labels = {
+      queued: queuedLabel === 'statusQueued' ? 'Queued' : queuedLabel,
       draft: this.t('statusDraft'),
       planned: this.t('statusPlanned'),
       implementing: this.t('statusImplementing'),
@@ -384,6 +387,7 @@ class DashboardApp {
     this.state.skillsStatus = skillsStatus;
     this.state.execution = execution;
     this.state.features = execution.activeChanges || [];
+    this.state.queuedFeatures = execution.queuedChanges || [];
     this.state.workflow = workflow;
     this.state.flags = flags.flags || [];
   }
@@ -1512,7 +1516,7 @@ class DashboardApp {
         sourceAssetStatusDescription: 'Provides the effective asset manifest, distinguishes direct-copy, template-generated, and runtime-generated outputs, and notes that the bootstrap summary appears only on explicit commit.',
         sourceDocsStatusDescription: 'Provides core-doc coverage and the presence of API, design, and planning documents.',
         sourceSkillsStatusDescription: 'Provides layered SKILL files, discovered modules, and the index snapshot for the skills layer.',
-        sourceExecutionStatusDescription: 'Provides the active change list, progress summary, and the per-change workflow profile shown in the execution view.',
+        sourceExecutionStatusDescription: 'Provides the active change list, queued change summary, progress signals, and the per-change workflow profile shown in the execution view.',
         sourceFlagsDescription: 'Provides the supported flags for new changes in the current project mode.',
         statusReady: 'Ready',
         statusNeedsUpgrade: 'Needs upgrade',
@@ -1584,6 +1588,7 @@ class DashboardApp {
         docsCoverage: 'Docs coverage',
         skillFiles: 'SKILL files',
         activeChangesLabel: 'Active changes',
+        queuedChangesLabel: 'Queued changes',
         missingRequiredLabel: 'Missing required',
         missingRecommendedLabel: 'Missing recommended',
         allRequiredReady: 'All required items are present',
@@ -1655,11 +1660,15 @@ class DashboardApp {
         skillsProtocolHint: 'Module skills and the skill index normally appear only after the project knowledge layer is built.',
         noActiveChanges: 'There are no active changes yet.',
         noActiveChangesHint: 'Use `dorado new <change-name> <path>` or a skill to create the next change, then return here to inspect progress.',
+        queuedChangesWaiting: 'Queued changes are waiting for activation.',
+        queuedChangeActivateHint: 'Finish or finalize the current active change, then activate the next queued change from the CLI.',
+        noQueuedChanges: 'There are no queued changes.',
         progress: 'Progress',
         currentStep: 'Current step',
         modeLite: 'Lite',
         modeStandard: 'Standard',
         modeFull: 'Full',
+        statusQueued: 'Queued',
         statusDraft: 'Draft',
         statusPlanned: 'Planned',
         statusImplementing: 'Implementing',
@@ -3369,7 +3378,7 @@ class DashboardApp {
       missingRecommended: [],
       skillIndex: { exists: false, needsRebuild: true, stale: false, reasons: [] },
     };
-    const execution = this.state.execution || { totalActiveChanges: 0 };
+    const execution = this.state.execution || { totalActiveChanges: 0, totalQueuedChanges: 0 };
     const defaultProfile = this.state.workflow?.defaultProfile || execution.defaultProfile || null;
     const cards = [
       { label: this.t('structureLevel'), value: this.getStructureLevelLabel(project.structureLevel || 'none'), tone: 'from-emerald-500/30 to-emerald-300/10' },
@@ -3378,6 +3387,7 @@ class DashboardApp {
       { label: this.t('apiDocCount'), value: docsStatus.apiDocs?.length || 0, tone: 'from-indigo-500/30 to-indigo-300/10' },
       { label: this.t('skillFiles'), value: `${skillsStatus.existing || 0}/${skillsStatus.totalSkillFiles || 0}`, tone: 'from-violet-500/30 to-violet-300/10' },
       { label: this.t('activeChangesLabel'), value: execution.totalActiveChanges || 0, tone: 'from-amber-500/30 to-amber-300/10' },
+      { label: this.t('queuedChangesLabel'), value: execution.totalQueuedChanges || 0, tone: 'from-orange-500/30 to-orange-300/10' },
       { label: this.t('indexStatus'), value: !skillsStatus.skillIndex?.exists ? this.t('indexMissing') : skillsStatus.skillIndex?.needsRebuild ? this.t('indexNeedsRebuild') : this.t('indexReady'), tone: 'from-rose-500/30 to-rose-300/10' },
     ];
 
@@ -3388,7 +3398,7 @@ class DashboardApp {
           ${this.renderDataSourcesCard('project')}
           ${this.renderViewStateCard('project')}
         </div>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
           ${cards.map(card => `
             <article class="rounded-[1.5rem] border border-slate-800 bg-gradient-to-br ${card.tone} p-6">
               <p class="text-sm text-slate-300">${card.label}</p>
@@ -3764,7 +3774,8 @@ class DashboardApp {
 
   renderFeatures() {
     const defaultProfile = this.state.workflow?.defaultProfile || this.state.execution?.defaultProfile || null;
-    if (this.state.features.length === 0) {
+    const queuedFeatures = this.state.queuedFeatures || [];
+    if (this.state.features.length === 0 && queuedFeatures.length === 0) {
       return `
         <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-10 text-center">
           <p class="text-lg text-slate-200">${this.t('noActiveChanges')}</p>
@@ -3781,7 +3792,16 @@ class DashboardApp {
     }
 
     return `
-      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div class="space-y-6">
+        ${queuedFeatures.length > 0 ? this.renderQueuedFeatures(queuedFeatures) : ''}
+        ${this.state.features.length === 0
+          ? `<section class="rounded-[2rem] border border-dashed border-slate-700 bg-slate-950/50 p-6">
+              <p class="text-lg text-slate-200">${this.t('noActiveChanges')}</p>
+              <p class="mt-2 text-sm text-slate-500">${this.t('queuedChangesWaiting')}</p>
+              <p class="mt-2 text-sm text-slate-500">${this.t('queuedChangeActivateHint')}</p>
+            </section>`
+          : ''}
+        ${this.state.features.length > 0 ? `<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         ${this.state.features.map(feature => `
           <article class="rounded-[1.75rem] border border-slate-800 bg-slate-950/80 p-6">
             <div class="flex items-start justify-between gap-4">
@@ -3823,8 +3843,40 @@ class DashboardApp {
               `).join('') || `<span class="text-sm text-slate-500">${this.t('noFlags')}</span>`}
             </div>
           </article>
-        `).join('')}
+        `).join('')}</div>` : ''}
       </div>
+    `;
+  }
+
+  renderQueuedFeatures(queuedFeatures) {
+    return `
+      <section class="rounded-[2rem] border border-slate-800 bg-slate-950/70 p-6">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">${this.t('queuedChangesLabel')}</p>
+            <p class="mt-2 text-sm text-slate-400">${this.t('queuedChangesWaiting')}</p>
+          </div>
+          <span class="rounded-full border border-slate-700 px-3 py-1 text-sm text-slate-300">${queuedFeatures.length}</span>
+        </div>
+        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          ${queuedFeatures.map((feature, index) => `
+            <article class="rounded-[1.5rem] border border-orange-500/20 bg-orange-500/5 p-5">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-xs uppercase tracking-[0.2em] text-orange-200/70">#${index + 1}</p>
+                  <h3 class="mt-2 text-lg font-semibold text-slate-50">${this.escapeHtml(feature.name)}</h3>
+                </div>
+                <span class="rounded-full border border-orange-500/25 px-3 py-1 text-xs tracking-[0.2em] text-orange-100">${this.getFeatureStatusLabel(feature.status)}</span>
+              </div>
+              <div class="mt-4 space-y-2 text-sm text-slate-300">
+                <p>${this.t('currentStep')}: <span class="text-slate-100">${this.escapeHtml(feature.currentStep || 'queued')}</span></p>
+                <p>Path: <span class="text-slate-100">${this.escapeHtml(feature.path)}</span></p>
+                <p>Queued at: <span class="text-slate-100">${this.escapeHtml(feature.queuedAt || '-')}</span></p>
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      </section>
     `;
   }
 

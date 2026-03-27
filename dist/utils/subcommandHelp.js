@@ -9,6 +9,8 @@ exports.getDoctorHelpText = getDoctorHelpText;
 exports.getWorkflowHelpText = getWorkflowHelpText;
 exports.getBatchHelpText = getBatchHelpText;
 exports.getChangesHelpText = getChangesHelpText;
+exports.getQueueHelpText = getQueueHelpText;
+exports.getRunHelpText = getRunHelpText;
 const HELP_ACTIONS = new Set(['help', '--help', '-h']);
 function isHelpAction(action) {
     return HELP_ACTIONS.has(action || '');
@@ -78,6 +80,34 @@ Changes Commands:
   dorado changes status [path]  - show PASS/WARN/FAIL protocol status for every active change
   dorado finalize [path]        - verify and archive a completed change before commit
   dorado changes help           - show changes command help
+`;
+}
+function getQueueHelpText() {
+    return `
+Queue Commands:
+  dorado queue status [path]             - show queued changes in activation order
+  dorado queue list [path]               - alias of queue status
+  dorado queue activate <change> [path]  - activate a specific queued change
+  dorado queue next [path]               - activate the next queued change
+  dorado queue help                      - show queue command help
+`;
+}
+function getRunHelpText() {
+    return `
+Run Commands:
+  note: automation never starts implicitly; use "dorado run start" as the switch
+  dorado run start [path] [executor]  - start a single-active queue run
+  dorado run start [path] --executor <executor> --profile <profile>
+  dorado run status [path]            - show queue state, runner stage, and current job details
+  dorado run step [path]              - dispatch or poll one explicit automation step for the active profile
+  dorado run resume [path]            - resume a paused or failed queue run and recover stale/failed jobs
+  dorado run stop [path]              - pause the current queue run without rollback
+  dorado run logs [path]              - show recent queue-run log lines and recovery history
+  dorado run profile list [path]      - list runner profiles and runtime support
+  dorado run profile show <id> [path] - show one runner profile
+  dorado run profile validate [path]  - validate runner config and profile support
+  dorado run profile set-default <id> [path] - set the default runner profile
+  dorado run help                     - show run command help
 `;
 }
 //# sourceMappingURL=subcommandHelp.js.map

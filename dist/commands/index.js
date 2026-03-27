@@ -3,7 +3,7 @@
  * 命令导出
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IndexCommand = exports.SkillsCommand = exports.SkillCommand = exports.DocsCommand = exports.DoctorCommand = exports.DashboardCommand = exports.WorkflowCommand = exports.BatchCommand = exports.StatusCommand = exports.FinalizeCommand = exports.ArchiveCommand = exports.ProgressCommand = exports.VerifyCommand = exports.NewCommand = exports.InitCommand = exports.BaseCommand = void 0;
+exports.IndexCommand = exports.SkillsCommand = exports.SkillCommand = exports.DocsCommand = exports.DoctorCommand = exports.DashboardCommand = exports.WorkflowCommand = exports.BatchCommand = exports.StatusCommand = exports.RunCommand = exports.QueueCommand = exports.FinalizeCommand = exports.ArchiveCommand = exports.ProgressCommand = exports.VerifyCommand = exports.NewCommand = exports.InitCommand = exports.BaseCommand = void 0;
 var BaseCommand_1 = require("./BaseCommand");
 Object.defineProperty(exports, "BaseCommand", { enumerable: true, get: function () { return BaseCommand_1.BaseCommand; } });
 var InitCommand_1 = require("./InitCommand");
@@ -18,6 +18,10 @@ var ArchiveCommand_1 = require("./ArchiveCommand");
 Object.defineProperty(exports, "ArchiveCommand", { enumerable: true, get: function () { return ArchiveCommand_1.ArchiveCommand; } });
 var FinalizeCommand_1 = require("./FinalizeCommand");
 Object.defineProperty(exports, "FinalizeCommand", { enumerable: true, get: function () { return FinalizeCommand_1.FinalizeCommand; } });
+var QueueCommand_1 = require("./QueueCommand");
+Object.defineProperty(exports, "QueueCommand", { enumerable: true, get: function () { return QueueCommand_1.QueueCommand; } });
+var RunCommand_1 = require("./RunCommand");
+Object.defineProperty(exports, "RunCommand", { enumerable: true, get: function () { return RunCommand_1.RunCommand; } });
 var StatusCommand_1 = require("./StatusCommand");
 Object.defineProperty(exports, "StatusCommand", { enumerable: true, get: function () { return StatusCommand_1.StatusCommand; } });
 var BatchCommand_1 = require("./BatchCommand");

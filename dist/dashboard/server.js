@@ -8,6 +8,7 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
+const gray_matter_1 = __importDefault(require("gray-matter"));
 const open_1 = __importDefault(require("open"));
 const path_1 = __importDefault(require("path"));
 const child_process_1 = require("child_process");
@@ -241,6 +242,97 @@ class DashboardServer {
         };
         router.get('/changes', listChanges);
         router.get('/features', listChanges);
+        router.get('/queue', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                const execution = await this.loadDashboardExecutionStatus();
+                res.json(execution.queuedChanges);
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.get('/run/status', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                res.json(await this.loadRunStatus());
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.get('/run/config', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                const runner = await services_1.services.runService.getRunnerConfiguration(this.config.projectPath);
+                res.json({
+                    ...runner,
+                    explicitStartRequired: true,
+                    startCommand: 'dorado run start',
+                    policy: 'config-describes-runtime-only',
+                });
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.post('/run/start', async (req, res) => {
+            try {
+                await this.ensureInitialized();
+                const executor = typeof req.body?.executor === 'string' ? req.body.executor : 'manual-bridge';
+                const profileId = typeof req.body?.profileId === 'string' ? req.body.profileId : undefined;
+                const report = await services_1.services.runService.start(this.config.projectPath, {
+                    executor,
+                    profileId,
+                });
+                res.json({
+                    success: true,
+                    message: `Queue run started with executor ${report.currentRun?.executor ?? executor}`,
+                    run: report,
+                });
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.post('/run/resume', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                const report = await services_1.services.runService.resume(this.config.projectPath);
+                res.json({
+                    success: true,
+                    message: 'Queue run resumed',
+                    run: report,
+                });
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.post('/run/stop', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                const report = await services_1.services.runService.stop(this.config.projectPath);
+                res.json({
+                    success: true,
+                    message: 'Queue run paused',
+                    run: report,
+                });
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
+        router.get('/run/logs', async (_req, res) => {
+            try {
+                await this.ensureInitialized();
+                const lines = await services_1.services.runService.getLogTail(this.config.projectPath, 50);
+                res.json({ lines });
+            }
+            catch (error) {
+                this.handleApiError(res, error);
+            }
+        });
         router.get('/workflow', async (_req, res) => {
             try {
                 await this.ensureInitialized();
@@ -347,6 +439,7 @@ class DashboardServer {
                     progress: feature.progress,
                     flags: flags || [],
                     currentStep: feature.currentStep,
+                    queueBucket: feature.status === 'queued' ? 'queued' : 'active',
                 };
                 res.status(201).json({
                     success: true,
@@ -795,8 +888,12 @@ class DashboardServer {
             throw new Error('Change name is required');
         }
         services_1.services.validationService.validateFeatureName(name);
-        const featureDir = path_1.default.join(this.config.projectPath, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE, name);
-        if (await services_1.services.fileService.exists(featureDir)) {
+        const hasActiveChanges = await services_1.services.projectService.hasActiveChanges(this.config.projectPath);
+        const bucket = hasActiveChanges ? constants_1.DIR_NAMES.QUEUED : constants_1.DIR_NAMES.ACTIVE;
+        const featureDir = path_1.default.join(this.config.projectPath, constants_1.DIR_NAMES.CHANGES, bucket, name);
+        const siblingFeatureDir = path_1.default.join(this.config.projectPath, constants_1.DIR_NAMES.CHANGES, bucket === constants_1.DIR_NAMES.ACTIVE ? constants_1.DIR_NAMES.QUEUED : constants_1.DIR_NAMES.ACTIVE, name);
+        if ((await services_1.services.fileService.exists(featureDir)) ||
+            (await services_1.services.fileService.exists(siblingFeatureDir))) {
             throw new Error(`Change ${name} already exists`);
         }
         const flags = (payload.flags ?? []).map(flag => flag.trim()).filter(Boolean);
@@ -822,8 +919,12 @@ class DashboardServer {
         const acceptanceCriteria = (payload.acceptanceCriteria ?? [])
             .map(item => item.trim())
             .filter(Boolean);
+        await services_1.services.fileService.ensureDir(path_1.default.join(this.config.projectPath, constants_1.DIR_NAMES.CHANGES, bucket));
         await services_1.services.fileService.ensureDir(featureDir);
-        await services_1.services.fileService.writeJSON(path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(name, affects, config.mode, workflowProfileId));
+        await services_1.services.fileService.writeJSON(path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(name, affects, config.mode, workflowProfileId, {
+            queued: bucket === constants_1.DIR_NAMES.QUEUED,
+            source: bucket === constants_1.DIR_NAMES.QUEUED ? 'queue' : 'manual',
+        }));
         await services_1.services.fileService.writeFile(path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL), services_1.services.templateEngine.generateProposalTemplate({
             feature: name,
             mode: config.mode,
@@ -896,6 +997,12 @@ class DashboardServer {
                 documentLanguage: payload.documentLanguage,
             }));
         }
+        if (bucket === constants_1.DIR_NAMES.QUEUED) {
+            const proposalPath = path_1.default.join(featureDir, constants_1.FILE_NAMES.PROPOSAL);
+            const proposal = (0, gray_matter_1.default)(await services_1.services.fileService.readFile(proposalPath));
+            proposal.data.status = 'queued';
+            await services_1.services.fileService.writeFile(proposalPath, gray_matter_1.default.stringify(proposal.content, proposal.data));
+        }
         const state = await services_1.services.stateManager.readState(featureDir);
         return {
             name,
@@ -953,6 +1060,9 @@ class DashboardServer {
     async loadExecutionStatus() {
         return services_1.services.projectService.getExecutionStatus(this.config.projectPath);
     }
+    async loadRunStatus() {
+        return services_1.services.runService.getStatusReport(this.config.projectPath);
+    }
     async loadDashboardExecutionStatus() {
         const execution = await this.loadExecutionStatus();
         const config = await this.loadProjectConfig();
@@ -961,6 +1071,7 @@ class DashboardServer {
             return {
                 ...execution,
                 activeChanges: [],
+                queuedChanges: execution.queuedChanges || [],
                 defaultProfile,
             };
         }
@@ -976,6 +1087,7 @@ class DashboardServer {
         return {
             ...execution,
             activeChanges,
+            queuedChanges: execution.queuedChanges || [],
             defaultProfile,
         };
     }

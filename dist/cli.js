@@ -46,6 +46,8 @@ const IndexCommand_1 = require("./commands/IndexCommand");
 const InitCommand_1 = require("./commands/InitCommand");
 const NewCommand_1 = require("./commands/NewCommand");
 const ProgressCommand_1 = require("./commands/ProgressCommand");
+const QueueCommand_1 = require("./commands/QueueCommand");
+const RunCommand_1 = require("./commands/RunCommand");
 const SkillCommand_1 = require("./commands/SkillCommand");
 const SkillsCommand_1 = require("./commands/SkillsCommand");
 const StatusCommand_1 = require("./commands/StatusCommand");
@@ -53,7 +55,7 @@ const VerifyCommand_1 = require("./commands/VerifyCommand");
 const WorkflowCommand_1 = require("./commands/WorkflowCommand");
 const services_1 = require("./services");
 const cliArgs_1 = require("./utils/cliArgs");
-const CLI_VERSION = '0.5.2';
+const CLI_VERSION = '0.10.1';
 async function main() {
     try {
         const args = process.argv.slice(2);
@@ -72,11 +74,16 @@ async function main() {
             case 'new': {
                 if (commandArgs.length === 0) {
                     console.error('Error: change name is required');
-                    console.log('Usage: dorado new <change-name> [root-dir]');
+                    console.log('Usage: dorado new <change-name> [root-dir] [--queued] [--activate]');
                     process.exit(1);
                 }
+                const newFlags = new Set(commandArgs.filter(arg => arg.startsWith('--')));
+                const newPositionalArgs = commandArgs.filter(arg => !arg.startsWith('--'));
                 const newCmd = new NewCommand_1.NewCommand();
-                await newCmd.execute(commandArgs[0], commandArgs[1]);
+                await newCmd.execute(newPositionalArgs[0], newPositionalArgs[1], {
+                    queued: newFlags.has('--queued'),
+                    activate: newFlags.has('--activate'),
+                });
                 break;
             }
             case 'verify': {
@@ -97,8 +104,22 @@ async function main() {
                 break;
             }
             case 'finalize': {
+                const finalizeFlags = new Set(commandArgs.filter(arg => arg.startsWith('--')));
+                const finalizePositionalArgs = commandArgs.filter(arg => !arg.startsWith('--'));
                 const finalizeCmd = new FinalizeCommand_1.FinalizeCommand();
-                await finalizeCmd.execute(commandArgs[0]);
+                await finalizeCmd.execute(finalizePositionalArgs[0], {
+                    activateNext: finalizeFlags.has('--activate-next'),
+                });
+                break;
+            }
+            case 'queue': {
+                const queueCmd = new QueueCommand_1.QueueCommand();
+                await queueCmd.execute(commandArgs[0] || 'status', commandArgs[1], commandArgs[2]);
+                break;
+            }
+            case 'run': {
+                const runCmd = new RunCommand_1.RunCommand();
+                await runCmd.execute(commandArgs[0] || 'status', ...commandArgs.slice(1));
                 break;
             }
             case 'status': {
@@ -191,11 +212,15 @@ Usage: dorado <command> [options]
 Commands:
   init [root-dir]           Initialize the Dorado protocol shell
   new <change-name> [root]  Create a new change
+                            Defaults to queued when another active change already exists
   verify [path]             Verify change completion
   progress [path]           Show workflow progress
   archive [path] [--check]  Archive a ready change or only check readiness
   status [path]             Show project status
   finalize [path]           Verify a completed change and archive it before commit
+                            Use --activate-next to immediately activate the next queued change
+  queue [action] [path]     Queue operations (status, activate, next)
+  run [action] [path]       Queue runner operations (explicit start only: start, step, status, resume, stop, logs, profile)
   batch <action> [path]     Batch operations (export, stats)
   changes [action] [path]   Active change summaries (status)
   dashboard [action]        Web Dashboard (start, stop, install, build)
@@ -212,11 +237,27 @@ Commands:
 Examples:
   dorado init
   dorado new onboarding-flow
+  dorado new payment-retry --queued
   dorado verify ./changes/active/onboarding-flow
   dorado progress ./changes/active/onboarding-flow
   dorado archive ./changes/active/onboarding-flow
   dorado archive ./changes/active/onboarding-flow --check
   dorado finalize ./changes/active/onboarding-flow
+  dorado finalize ./changes/active/onboarding-flow --activate-next
+  dorado queue status
+  dorado queue activate payment-retry
+  dorado queue next
+  dorado run start
+  dorado run start --executor manual-bridge --profile manual-safe
+  dorado run start --profile manual-safe
+  dorado run step
+  dorado run status
+  dorado run resume
+  dorado run stop
+  dorado run logs
+  dorado run profile list
+  dorado run profile show manual-safe
+  dorado run profile validate
   dorado status
   dorado docs status
   dorado docs generate

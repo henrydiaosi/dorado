@@ -32,8 +32,12 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NewCommand = void 0;
+const gray_matter_1 = __importDefault(require("gray-matter"));
 const path = __importStar(require("path"));
 const constants_1 = require("../core/constants");
 const services_1 = require("../services");
@@ -41,24 +45,36 @@ const PathUtils_1 = require("../utils/PathUtils");
 const workflow_1 = require("../workflow");
 const BaseCommand_1 = require("./BaseCommand");
 class NewCommand extends BaseCommand_1.BaseCommand {
-    async execute(featureName, rootDir) {
+    async execute(featureName, rootDir, options = {}) {
         try {
             this.validateArgs([featureName], 1);
             services_1.services.validationService.validateFeatureName(featureName);
             const targetDir = rootDir || process.cwd();
-            const featureDir = PathUtils_1.PathUtils.getFeatureDir(targetDir, featureName);
-            this.logger.info(`Creating change: ${featureName}`);
-            if (await services_1.services.fileService.exists(featureDir)) {
+            const hasActiveChanges = await services_1.services.projectService.hasActiveChanges(targetDir);
+            const shouldQueue = options.queued === true || (!options.activate && hasActiveChanges);
+            const bucket = shouldQueue ? 'queued' : 'active';
+            const featureDir = PathUtils_1.PathUtils.getChangeDir(targetDir, bucket, featureName);
+            const siblingFeatureDir = PathUtils_1.PathUtils.getChangeDir(targetDir, shouldQueue ? 'active' : 'queued', featureName);
+            this.logger.info(`Creating ${bucket} change: ${featureName}`);
+            if (options.activate === true && hasActiveChanges) {
+                throw new Error('Cannot activate a new change while another active change exists.');
+            }
+            if ((await services_1.services.fileService.exists(featureDir)) ||
+                (await services_1.services.fileService.exists(siblingFeatureDir))) {
                 throw new Error(`Change ${featureName} already exists`);
             }
             await services_1.services.fileService.ensureDir(path.join(targetDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE));
+            await services_1.services.fileService.ensureDir(path.join(targetDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED));
             await services_1.services.fileService.ensureDir(featureDir);
             const config = await services_1.services.configManager.loadConfig(targetDir);
             const projectContext = await services_1.services.projectService.getFeatureProjectContext(targetDir, []);
             const workflowProfileId = (0, workflow_1.getModeDefaultWorkflowProfileId)(config.mode);
             const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
             const optionalSteps = workflow.getActivatedSteps([]);
-            await services_1.services.fileService.writeJSON(path.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(featureName, [], config.mode, workflowProfileId));
+            await services_1.services.fileService.writeJSON(path.join(featureDir, constants_1.FILE_NAMES.STATE), services_1.services.stateManager.createInitialState(featureName, [], config.mode, workflowProfileId, {
+                queued: shouldQueue,
+                source: shouldQueue ? 'queue' : 'manual',
+            }));
             await services_1.services.fileService.writeFile(path.join(featureDir, constants_1.FILE_NAMES.PROPOSAL), services_1.services.templateEngine.generateProposalTemplate({
                 feature: featureName,
                 mode: config.mode,
@@ -87,7 +103,13 @@ class NewCommand extends BaseCommand_1.BaseCommand {
                     projectContext,
                 }));
             }
-            this.success(`Change ${featureName} created at ${featureDir}`);
+            if (shouldQueue) {
+                const proposalPath = path.join(featureDir, constants_1.FILE_NAMES.PROPOSAL);
+                const proposal = (0, gray_matter_1.default)(await services_1.services.fileService.readFile(proposalPath));
+                proposal.data.status = 'queued';
+                await services_1.services.fileService.writeFile(proposalPath, gray_matter_1.default.stringify(proposal.content, proposal.data));
+            }
+            this.success(`${shouldQueue ? 'Queued' : 'Active'} change ${featureName} created at ${featureDir}`);
         }
         catch (error) {
             this.error(`Failed to create change: ${error}`);

@@ -1,14 +1,14 @@
 name: dorado
 title: Dorado
 description: Protocol-shell-first Dorado bootstrap and execution skill for Codex, Claude Code, and similar AI tools.
-version: 5.0.1
+version: 5.0.2
 author: Dorado Team
 license: MIT
 
 interface:
   display_name: "Dorado"
   short_description: "Inspect, initialize, and operate Dorado projects"
-  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: if the user intent is simply to initialize the project, still run the mandatory flow, keep protocol shell first, use explicit knowledge backfill later, assume no web template when the project type is unclear, and do not create the first change automatically."
+  default_prompt: "Use $dorado to inspect and initialize this directory according to Dorado rules: if the user intent is simply to initialize the project, still run the mandatory flow, keep protocol shell first, use explicit knowledge backfill later, assume no web template when the project type is unclear, do not create the first change automatically, and only use dorado run start or dorado run step when the user explicitly wants queue execution."
 
 requires_local:
   node: ">=18.0.0"

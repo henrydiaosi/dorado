@@ -37,6 +37,7 @@ exports.ConfigManager = void 0;
 exports.createConfigManager = createConfigManager;
 const path = __importStar(require("path"));
 const constants_1 = require("../core/constants");
+const runnerConfig_1 = require("../core/runnerConfig");
 const errors_1 = require("../core/errors");
 const ConfigurableWorkflow_1 = require("../workflow/ConfigurableWorkflow");
 class ConfigManager {
@@ -81,7 +82,16 @@ class ConfigManager {
                 exclude: ['node_modules/**', 'dist/**', '*.test.*'],
             },
             workflow,
+            runner: {
+                default_executor: runnerConfig_1.DEFAULT_RUNNER_EXECUTOR,
+                default_profile: runnerConfig_1.DEFAULT_RUNNER_PROFILE_ID,
+                auto_start: false,
+                profiles: (0, runnerConfig_1.normalizeRunnerConfig)().profiles,
+            },
         };
+    }
+    validateConfig(config) {
+        return (0, runnerConfig_1.validateRunnerConfig)(config.runner ?? (0, runnerConfig_1.normalizeRunnerConfig)());
     }
     normalizeConfig(config) {
         const hooks = config.hooks || {
@@ -117,6 +127,7 @@ class ConfigManager {
                     }
                     : {}),
             },
+            runner: (0, runnerConfig_1.normalizeRunnerConfig)(config.runner),
         };
     }
 }

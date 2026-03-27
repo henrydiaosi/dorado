@@ -2,149 +2,165 @@
 
 [English](skills-usage.md) | [简体中文](skills-usage.zh-CN.md)
 
-## 目的
+## 这才是使用 Dorado 的主方式
 
-这份文档说明如何通过已安装的 AI skills 使用 Dorado，而不是每一步都自己手敲 CLI 命令。
+如果你正在 Codex 或 Claude Code 里工作，skills 才是 Dorado 的正常入口。
 
-CLI 仍然是底层执行引擎。Skills 是面向 Codex 或 Claude Code 的 AI 入口，让你可以用简短提示词触发正确的 Dorado 工作流。
+CLI 仍然是真正的执行引擎，但日常使用 Dorado 时，大多数场景都应该从 `$dorado` 或更窄边界的 Dorado skill 自然语言提示词开始。
 
-## 什么场景用 Skills
+## 你真正需要记住的东西
 
-以下情况优先用 Dorado skills：
+大多数情况下，只需要记住下面几件事：
 
-- 你是在 Codex 或 Claude Code 里工作
-- 你希望用自然语言表达意图
-- 你不想每次都重复 Dorado 内部检查清单
-- 你希望 AI 自动选择 init、inspection、知识层补齐、workflow 模式检查、change 执行、verify 或 closeout 的正确流程
+- 广义 Dorado 请求用 `$dorado`
+- 明确是创建或推进 change 时用 `$dorado-change`
+- 明确是收口时用 `$dorado-finalize`
+- 短自然语言通常就够了
 
-以下情况更适合直接用 CLI：
-
-- 你想精确手动控制某个命令
-- 你在做脚本化或非 AI 客户端自动化
-- 你想直接观察原始命令行为
-
-## 主入口 Skill
-
-默认 skill 是：
+## 主要入口
 
 - `$dorado`
-
-大多数提示词都优先使用这个入口。
-
-## 专用 Skills
-
-Dorado 还会安装这些更聚焦的 skill 入口：
-
 - `$dorado-init`
 - `$dorado-inspect`
 - `$dorado-backfill`
-- `$dorado-workflow`
 - `$dorado-change`
+- `$dorado-workflow`
 - `$dorado-verify`
 - `$dorado-archive`
 - `$dorado-finalize`
 
-当你想把动作边界说得非常明确时，使用这些专用入口更合适。
+## 核心思维模型
 
-## 推荐 Skills 工作流
+一个好的 Dorado skill 提示词，通常只需要回答三个问题：
 
-### 1. 初始化新仓库
+1. 目标是什么
+2. 谁来执行
+3. 当前是只检查、正在执行，还是收口
+
+## 常见自然语言模式
+
+### 初始化
 
 ```text
 Use $dorado to initialize this project.
 ```
 
-这里 Dorado 应该自动完成：
-
-- 检查当前目录状态
-- 如果未初始化就创建协议壳
-- 普通 init 不生成 web scaffold 或首个 change
-- 初始化后告诉你当前还缺什么
-
-### 2. 检查已有仓库
-
 ```text
-Use $dorado-inspect to inspect this repository and summarize the current Dorado state.
+使用 $dorado 初始化这个项目。
 ```
 
-当你想先分析、暂时不写入时，这个入口最合适。
-
-### 3. 补齐项目知识层
+### 检查
 
 ```text
-Use $dorado-backfill to read the existing project materials and build the Dorado knowledge layer.
+Use $dorado to inspect this repository and tell me what is missing.
 ```
-
-当仓库里已经有设计说明、产品文档、API 草案或架构材料时，这就是正确入口。
-
-### 4. 查看或切换工作模式
 
 ```text
-Use $dorado-workflow to show the current workflow mode and switch to full mode only if it is safe.
+使用 $dorado 检查这个仓库，并告诉我当前还缺什么。
 ```
 
-当仓库治理强度很重要时，用这个入口最合适。Workflow skill 应该主动解释安全规则，不应在你没明确要求时强制更新 active changes。
-
-### 5. 设计文档优先工作流
-
-如果团队在初始化前就已经有设计文档，这是一种有效的 Dorado skills 使用方式：
+### 补齐知识层
 
 ```text
-Use $dorado to initialize this project, read the existing design documents, backfill the project knowledge layer, derive the execution TODO, and then create the first change to execute it.
+Use $dorado to read the existing design docs and backfill the project knowledge layer.
 ```
 
-它在底层对应的 Dorado 流程是：
+```text
+使用 $dorado 读取现有设计文档，并补齐项目知识层。
+```
 
-1. 先初始化协议壳
-2. 再基于真实设计文档补齐知识层
-3. 再细化执行 TODO
-4. 再创建首个 change
-5. 再进入 change 执行
-
-### 6. 启动一个需求
+### 创建并执行 Change
 
 ```text
 Use $dorado-change to create and advance a change for this requirement:
 Add a versioned public REST API for project exports.
 ```
 
-Skill 应该把这段意图转成正确的 change 创建和执行流程，而不是要求你自己把内部步骤全写出来。
+```text
+使用 $dorado-change 为这个需求创建并推进一个 change：
+为项目导出能力增加一个带版本的公开 REST API。
+```
 
-### 7. 验证当前工作
+### 验证
 
 ```text
 Use $dorado-verify to verify the current active change.
 ```
 
-### 8. 完成后的收口
+```text
+使用 $dorado-verify 验证当前 active change。
+```
+
+### 收口
 
 ```text
 Use $dorado-finalize to finalize the completed change before commit.
 ```
 
-这是 skill 侧的标准收口入口，应与 CLI 侧的 `finalize -> archive -> commit-ready` 行为对齐。
+```text
+使用 $dorado-finalize 在提交前收口这个已完成的 change。
+```
 
-## Skill 命名建议
+## 队列模式
 
-- 大多数场景优先使用 `$dorado`
-- 如果你要严格限定动作边界，就使用专用 skill
-- `$dorado-cli` 只保留给旧兼容场景
+### 只建队列
 
-## 提示词质量规则
+```text
+Use $dorado to read this TODO plan, split it into multiple changes, create a queue, and show the queue state before execution.
+```
 
-好的 skill 提示词应该：
+```text
+使用 $dorado 读取这份 TODO 计划，把它拆成多个 change，建立队列，并先展示队列状态，不要马上执行。
+```
 
-- 清晰表达目标
-- 目标不明确时点明仓库或 change
-- 说明当前是 init、inspect、backfill、workflow、change、verify、archive 还是 finalize
-- 对 web、backend、Unity、Godot、CLI、纯协议仓库等不同项目类型都保持稳定
+### 当前窗口自己执行
 
-通常不需要重复写：
+```text
+Use $dorado to read this TODO plan, create a change queue, and execute it in this current session. Use manual-bridge tracking and do not dispatch an extra local executor.
+```
 
-- 协议壳文件检查清单
-- “不要创建 web 模板” 这类警告
-- “提交前先归档”
-- “模式切换前先判断是否安全”
-- 具体 CLI 命令名
+```text
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并由当前聊天窗口按队列执行。使用 manual-bridge 跟踪，不要额外派发本地执行器。
+```
 
-这些都应该由 Dorado skill 行为和 CLI 协议默认规则兜底。
+### 让 Dorado 调 Codex
+
+```text
+Use $dorado to read this TODO plan, create a change queue, and run it with the codex executor and archive-chain profile.
+```
+
+```text
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并使用 codex 执行器加 archive-chain profile 运行。
+```
+
+### 让 Dorado 调 Claude Code
+
+```text
+Use $dorado to read this TODO plan, create a change queue, and run it with the claude-code executor and archive-chain profile.
+```
+
+```text
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并使用 claude-code 执行器加 archive-chain profile 运行。
+```
+
+## 一个非常重要的区别
+
+你正在 Codex 或 Claude Code 聊天窗口里工作，并不自动等于 Dorado 正在使用 `codex` 或 `claude-code` 执行器。
+
+这是两件不同的事：
+
+- 你当前正在对话的 AI 客户端
+- Dorado 在队列执行时是否显式派发执行器
+
+如果你希望由当前聊天窗口自己执行，就明确说出来。  
+如果你希望 Dorado 调用本地执行器，也明确说出来。
+
+## 什么时候才直接用 CLI
+
+以下场景才更适合直接用原生命令：
+
+- 你在写自动化脚本
+- 你想精确手控每一步
+- 你在排查底层执行细节
+
+正常交互场景下，应当默认优先使用 skills。

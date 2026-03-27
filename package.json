@@ -1,6 +1,6 @@
 {
   "name": "dorado-cli",
-  "version": "0.5.2",
+  "version": "0.10.1",
   "description": "CLI tool for enforcing dorado workflow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -41,7 +41,7 @@ dorado init [path]
         title: 'Dorado Inspect',
         description: 'Inspect an existing repository to determine Dorado initialization level, docs coverage, skills coverage, and active change posture.',
         shortDescription: 'Inspect Dorado project state',
-        defaultPrompt: 'Use $dorado-inspect to inspect the current repository state with dorado status, dorado docs status, dorado skills status, dorado changes status, dorado workflow show, and the dashboard when needed. Prefer diagnosis before mutation.',
+        defaultPrompt: 'Use $dorado-inspect to inspect the current repository state with dorado status, dorado docs status, dorado skills status, dorado changes status, dorado workflow show, dorado run status when queue execution matters, and the dashboard when needed. Prefer diagnosis before mutation.',
         markdown: `# Dorado Inspect
 
 Use this action when the user wants to understand current project posture before changing anything.
@@ -53,6 +53,7 @@ dorado status [path]
 dorado docs status [path]
 dorado skills status [path]
 dorado changes status [path]
+dorado run status [path]
 dorado workflow show
 dorado dashboard start [path] [--port <port>] [--no-open]
 \`\`\`
@@ -61,6 +62,7 @@ dorado dashboard start [path] [--port <port>] [--no-open]
 
 - prefer inspection before initialization or backfill
 - treat the dashboard as a viewer, not the primary creator
+- treat run status as inspection only; do not dispatch queue execution during passive inspection
 - call out whether the repo is uninitialized, basic, or full
 `,
     },
@@ -124,7 +126,7 @@ dorado workflow set-mode <lite|standard|full> [path] --force-active
         title: 'Dorado Change',
         description: 'Create or advance an active change inside a Dorado project while respecting workflow files and optional-step activation.',
         shortDescription: 'Create or advance a change',
-        defaultPrompt: 'Use $dorado-change to create or advance a Dorado change. Read .skillrc, SKILL.index.json, workflow posture, and the current change files first. Keep protocol execution inside changes/active/<change> and do not confuse bootstrap with change creation.',
+        defaultPrompt: 'Use $dorado-change to create or advance a Dorado change. Read .skillrc, SKILL.index.json, workflow posture, runner state when relevant, and the current change files first. Keep protocol execution inside changes/active/<change>, do not confuse bootstrap with change creation, and distinguish manual-bridge tracking from explicit codex/claude-code queue execution.',
         markdown: `# Dorado Change
 
 Use this action for requirement execution after project initialization.
@@ -134,10 +136,11 @@ Use this action for requirement execution after project initialization.
 1. \`.skillrc\`
 2. \`SKILL.index.json\`
 3. \`dorado workflow show\` output when workflow posture matters
-4. \`changes/active/<change>/proposal.md\`
-5. \`changes/active/<change>/tasks.md\`
-6. \`changes/active/<change>/state.json\`
-7. \`changes/active/<change>/verification.md\`
+4. \`dorado run status [path]\` when runner or executor state matters
+5. \`changes/active/<change>/proposal.md\`
+6. \`changes/active/<change>/tasks.md\`
+7. \`changes/active/<change>/state.json\`
+8. \`changes/active/<change>/verification.md\`
 
 ## Commands
 
@@ -145,7 +148,17 @@ Use this action for requirement execution after project initialization.
 dorado new <change-name> [path]
 dorado progress [changes/active/<change>]
 dorado changes status [path]
+dorado run start [path] --executor <manual-bridge|codex|claude-code> --profile <profile>
+dorado run status [path]
+dorado run step [path]
 \`\`\`
+
+## Runner Rules
+
+- \`manual-bridge\` means Dorado is tracking a manual or external AI implementation pass
+- \`codex\` and \`claude-code\` are explicit queue executors; they must not be started implicitly
+- only use \`dorado run start\` / \`dorado run step\` when the user explicitly wants queue execution
+- executor output does not bypass verify / finalize / archive
 `,
     },
     {
@@ -512,10 +525,14 @@ ${markdownBody.trimStart()}`;
     }
     buildSkillMarkdown(definition) {
         if (/^---\r?\n/.test(definition.markdown)) {
-            return definition.markdown;
+            if (/^---\r?\n[\s\S]*?\r?\ndescription:\s.+\r?\n[\s\S]*?\r?\n---\r?\n?/m.test(definition.markdown)) {
+                return definition.markdown;
+            }
+            return definition.markdown.replace(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/, `---\n$1\ndescription: ${definition.description}\n---\n\n`);
         }
         return `---
 name: ${definition.name}
+description: ${definition.description}
 tags: [dorado, cli, workflow]
 ---
 

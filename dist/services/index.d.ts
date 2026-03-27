@@ -13,6 +13,8 @@ export { ProjectAssetService, createProjectAssetService } from './ProjectAssetSe
 export { ProjectScaffoldService, createProjectScaffoldService } from './ProjectScaffoldService';
 export { ProjectScaffoldCommandService, createProjectScaffoldCommandService, } from './ProjectScaffoldCommandService';
 export { ProjectService, createProjectService } from './ProjectService';
+export { ExecutorService, createExecutorService } from './ExecutorService';
+export { RunService, createRunService } from './RunService';
 import { FileService } from './FileService';
 import { ConfigManager } from './ConfigManager';
 import { StateManager } from './StateManager';
@@ -25,6 +27,8 @@ import { ProjectAssetService } from './ProjectAssetService';
 import { ProjectScaffoldService } from './ProjectScaffoldService';
 import { ProjectScaffoldCommandService } from './ProjectScaffoldCommandService';
 import { ProjectService } from './ProjectService';
+import { ExecutorService } from './ExecutorService';
+import { RunService } from './RunService';
 export declare class ServiceContainer {
     private static instance;
     readonly fileService: FileService;
@@ -39,6 +43,8 @@ export declare class ServiceContainer {
     readonly projectScaffoldService: ProjectScaffoldService;
     readonly projectScaffoldCommandService: ProjectScaffoldCommandService;
     readonly projectService: ProjectService;
+    readonly executorService: ExecutorService;
+    readonly runService: RunService;
     private constructor();
     static getInstance(): ServiceContainer;
 }

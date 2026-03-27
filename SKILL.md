@@ -1,5 +1,6 @@
 ---
 name: dorado
+description: Protocol-shell-first Dorado workflow for initialization, project knowledge backfill, change execution, verification, and archive readiness.
 tags: [cli, workflow, automation, typescript, dorado, dashboard, bootstrap]
 ---
 
@@ -105,6 +106,22 @@ Use when the user is explicitly ready to move into execution.
 Use dorado to create and advance a change for this requirement. Respect the current project state and do not treat bootstrap as auto-change creation.
 ```
 
+### 6. TODO Queue Prompt
+
+Use when the user already has a TODO plan and wants Dorado to split it into multiple queued changes.
+
+```text
+Read this TODO plan, use dorado to split it into multiple change units, create a Dorado change queue, and show the queue state before execution.
+```
+
+### 7. Queue Execution Prompt
+
+Use when the user wants Dorado not only to create queued changes, but also to start queue execution with an explicit mode.
+
+```text
+Read this TODO plan, use dorado to create a change queue, then continue with Dorado queue execution. If I want the current AI session to do the work, keep it in manual-bridge mode. If I explicitly ask for codex or claude-code executor mode, start dorado run with that executor and advance it with explicit run steps until the queue completes.
+```
+
 ## Anti-Drift Rules
 
 Always keep these rules:
@@ -132,6 +149,36 @@ This CLI now covers:
 - explicit business scaffold generation for supported presets
 - Codex and Claude Code skill install and sync checks
 
+## Queue Runner And Executors
+
+When the repository is already initialized and the user wants Dorado to advance queued work explicitly, prefer the queue runner commands:
+
+```bash
+dorado run start [path] --executor <manual-bridge|codex|claude-code> --profile <profile>
+dorado run status [path]
+dorado run step [path]
+dorado run resume [path]
+dorado run stop [path]
+```
+
+Interpret them this way:
+
+- `manual-bridge` means Dorado tracks the change while a human or external AI client performs the implementation pass
+- `codex` means Dorado may dispatch the local `codex` CLI experimentally
+- `claude-code` means Dorado may dispatch the local `claude` CLI experimentally
+- `run start` is always explicit; Dorado must not auto-start from hooks, dashboard refresh, or passive inspection
+- `run step` is the only place where dispatch or polling should happen
+- executor output never overrides Dorado protocol checks; verify/finalize/archive still remain under Dorado control
+
+If the user is only asking to inspect state, use `dorado run status` or the dashboard. Do not dispatch an executor just because run data exists.
+
+When the user describes a TODO-driven queue in natural language, distinguish these intents carefully:
+
+- “create a queue” means split work into multiple Dorado changes first
+- “execute in this current Codex / Claude session” means prefer `manual-bridge`
+- “execute with codex” or “execute with claude-code” means explicit local executor mode
+- “run automatically until the queue finishes” still means explicit `run start` plus explicit repeated `run step`, not an implicit background daemon
+
 ## Canonical Execution Files
 
 Treat these as the source of truth for active delivery work:
@@ -154,6 +201,10 @@ dorado new <change-name> [path]
 dorado docs status [path]
 dorado skills status [path]
 dorado changes status [path]
+dorado run status [path]
+dorado run start [path] --executor <executor> --profile <profile>
+dorado run step [path]
+dorado run resume [path]
 dorado dashboard start [path] [--port <port>] [--no-open]
 dorado index check [path]
 dorado index build [path]
@@ -215,6 +266,7 @@ Do not treat the dashboard as:
 - the default place to invent project structure
 - the owner of first-change creation
 - the main place to decide project type
+- the place that secretly starts executor jobs
 
 ## Project-Type Rules
 

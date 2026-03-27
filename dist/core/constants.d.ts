@@ -24,7 +24,12 @@ export declare const FILE_NAMES: {
 export declare const DIR_NAMES: {
     CHANGES: string;
     ACTIVE: string;
+    QUEUED: string;
     ARCHIVED: string;
+    RUNS: string;
+    HISTORY: string;
+    LOGS: string;
+    JOBS: string;
     FOR_AI: string;
     DOCS: string;
     PROJECT: string;

@@ -3,7 +3,7 @@
  * 服务层导出
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.services = exports.ServiceContainer = exports.createProjectService = exports.ProjectService = exports.createProjectScaffoldCommandService = exports.ProjectScaffoldCommandService = exports.createProjectScaffoldService = exports.ProjectScaffoldService = exports.createProjectAssetService = exports.ProjectAssetService = exports.createIndexBuilder = exports.IndexBuilder = exports.logger = exports.LogLevel = exports.Logger = exports.validationService = exports.ValidationService = exports.templateEngine = exports.TemplateEngine = exports.skillParser = exports.SkillParser = exports.createStateManager = exports.StateManager = exports.createConfigManager = exports.ConfigManager = exports.fileService = exports.FileService = void 0;
+exports.services = exports.ServiceContainer = exports.createRunService = exports.RunService = exports.createExecutorService = exports.ExecutorService = exports.createProjectService = exports.ProjectService = exports.createProjectScaffoldCommandService = exports.ProjectScaffoldCommandService = exports.createProjectScaffoldService = exports.ProjectScaffoldService = exports.createProjectAssetService = exports.ProjectAssetService = exports.createIndexBuilder = exports.IndexBuilder = exports.logger = exports.LogLevel = exports.Logger = exports.validationService = exports.ValidationService = exports.templateEngine = exports.TemplateEngine = exports.skillParser = exports.SkillParser = exports.createStateManager = exports.StateManager = exports.createConfigManager = exports.ConfigManager = exports.fileService = exports.FileService = void 0;
 var FileService_1 = require("./FileService");
 Object.defineProperty(exports, "FileService", { enumerable: true, get: function () { return FileService_1.FileService; } });
 Object.defineProperty(exports, "fileService", { enumerable: true, get: function () { return FileService_1.fileService; } });
@@ -41,6 +41,12 @@ Object.defineProperty(exports, "createProjectScaffoldCommandService", { enumerab
 var ProjectService_1 = require("./ProjectService");
 Object.defineProperty(exports, "ProjectService", { enumerable: true, get: function () { return ProjectService_1.ProjectService; } });
 Object.defineProperty(exports, "createProjectService", { enumerable: true, get: function () { return ProjectService_1.createProjectService; } });
+var ExecutorService_1 = require("./ExecutorService");
+Object.defineProperty(exports, "ExecutorService", { enumerable: true, get: function () { return ExecutorService_1.ExecutorService; } });
+Object.defineProperty(exports, "createExecutorService", { enumerable: true, get: function () { return ExecutorService_1.createExecutorService; } });
+var RunService_1 = require("./RunService");
+Object.defineProperty(exports, "RunService", { enumerable: true, get: function () { return RunService_1.RunService; } });
+Object.defineProperty(exports, "createRunService", { enumerable: true, get: function () { return RunService_1.createRunService; } });
 // 服务容器
 const FileService_2 = require("./FileService");
 const ConfigManager_2 = require("./ConfigManager");
@@ -54,6 +60,8 @@ const ProjectAssetService_2 = require("./ProjectAssetService");
 const ProjectScaffoldService_2 = require("./ProjectScaffoldService");
 const ProjectScaffoldCommandService_2 = require("./ProjectScaffoldCommandService");
 const ProjectService_2 = require("./ProjectService");
+const ExecutorService_2 = require("./ExecutorService");
+const RunService_2 = require("./RunService");
 class ServiceContainer {
     constructor() {
         this.fileService = FileService_2.fileService;
@@ -68,6 +76,8 @@ class ServiceContainer {
         this.projectScaffoldService = (0, ProjectScaffoldService_2.createProjectScaffoldService)(FileService_2.fileService);
         this.projectScaffoldCommandService = (0, ProjectScaffoldCommandService_2.createProjectScaffoldCommandService)(FileService_2.fileService, Logger_2.logger);
         this.projectService = (0, ProjectService_2.createProjectService)(FileService_2.fileService, this.configManager, TemplateEngine_2.templateEngine, this.indexBuilder, this.skillParser, this.stateManager, this.projectAssetService, this.projectScaffoldService, this.projectScaffoldCommandService);
+        this.executorService = (0, ExecutorService_2.createExecutorService)(FileService_2.fileService);
+        this.runService = (0, RunService_2.createRunService)(FileService_2.fileService, this.projectService, this.configManager, this.executorService);
     }
     static getInstance() {
         if (!ServiceContainer.instance) {

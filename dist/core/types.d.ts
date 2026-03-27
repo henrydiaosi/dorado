@@ -1,7 +1,24 @@
 export type ProjectMode = 'lite' | 'standard' | 'full';
 export type HookCheckPolicy = 'off' | 'warn' | 'error';
 export type ChangeSummaryStatus = 'pass' | 'warn' | 'fail';
-export type FeatureStatus = 'draft' | 'proposed' | 'planned' | 'implementing' | 'verifying' | 'ready_to_archive' | 'archived';
+export type QueueRunStatus = 'idle' | 'running' | 'paused' | 'failed' | 'completed';
+export type QueueRunExecutor = 'manual-bridge' | 'codex' | 'claude-code';
+export interface RunnerProfileConfig {
+    auto_activate_next: boolean;
+    auto_verify: boolean;
+    auto_finalize: boolean;
+    auto_archive: boolean;
+    auto_commit: boolean;
+    stop_on_warn: boolean;
+    stop_on_fail: boolean;
+}
+export interface RunnerConfig {
+    default_executor: QueueRunExecutor;
+    default_profile: string;
+    auto_start: boolean;
+    profiles: Record<string, RunnerProfileConfig>;
+}
+export type FeatureStatus = 'queued' | 'draft' | 'proposed' | 'planned' | 'implementing' | 'verifying' | 'ready_to_archive' | 'archived';
 export interface SkillrcConfig {
     version: string;
     mode: ProjectMode;
@@ -32,6 +49,7 @@ export interface SkillrcConfig {
             supported: string[];
         };
     };
+    runner?: RunnerConfig;
 }
 export interface FeatureState {
     version: string;
@@ -44,11 +62,14 @@ export interface FeatureState {
     completed: string[];
     pending: string[];
     blocked_by: string[];
+    queued_at?: string;
+    activated_at?: string | null;
+    source?: 'manual' | 'queue' | 'runner';
     last_updated: string;
 }
 export interface ProposalFrontmatter {
     name: string;
-    status: 'active' | 'archived';
+    status: 'active' | 'queued' | 'archived';
     created: string;
     affects: string[];
     flags: string[];
@@ -199,8 +220,10 @@ export interface ExecutionFeatureSummary {
 }
 export interface ExecutionStatus {
     totalActiveChanges: number;
+    totalQueuedChanges: number;
     byStatus: Record<string, number>;
     activeChanges: ExecutionFeatureSummary[];
+    queuedChanges: QueuedChangeSummary[];
 }
 export interface ChangeStatusCheck {
     name: string;
@@ -220,6 +243,79 @@ export interface ActiveChangeStatusReport {
     totalActiveChanges: number;
     totals: Record<ChangeSummaryStatus, number>;
     changes: ActiveChangeStatusItem[];
+}
+export interface QueuedChangeSummary {
+    name: string;
+    path: string;
+    status: FeatureState['status'];
+    currentStep: string;
+    queuedAt: string | null;
+    activatedAt: string | null;
+    source: FeatureState['source'] | null;
+}
+export interface QueueRunChangeRecord {
+    name: string;
+    path: string;
+    status: FeatureState['status'] | 'archived';
+    recordedAt: string;
+    note?: string;
+}
+export type ExecutorJobStatus = 'queued' | 'dispatching' | 'running' | 'waiting_for_manual' | 'completed' | 'failed' | 'cancelled';
+export interface ExecutorJobSummary {
+    id: string;
+    executor: QueueRunExecutor;
+    status: ExecutorJobStatus;
+    changeName: string;
+    changePath: string;
+    startedAt: string;
+    updatedAt: string;
+    completedAt: string | null;
+    note: string | null;
+    promptPath: string | null;
+    outputPath: string | null;
+}
+export interface ExecutorJob extends ExecutorJobSummary {
+    runId: string;
+    projectPath: string;
+    profileId: string;
+    promptPath: string | null;
+    outputPath: string | null;
+    dispatchedAt: string | null;
+    lastPolledAt: string | null;
+    lastError: string | null;
+}
+export interface QueueRun {
+    id: string;
+    status: QueueRunStatus;
+    executor: QueueRunExecutor;
+    profileId: string;
+    mode: 'single-active-sequential';
+    projectPath: string;
+    startedAt: string;
+    updatedAt: string;
+    stoppedAt: string | null;
+    completedAt: string | null;
+    currentChange: string | null;
+    currentChangePath: string | null;
+    currentJobId: string | null;
+    currentJob: ExecutorJobSummary | null;
+    completedChanges: QueueRunChangeRecord[];
+    remainingChanges: string[];
+    failedChange: QueueRunChangeRecord | null;
+    logPath: string;
+    lastInstruction: string | null;
+}
+export interface QueueRunStatusReport {
+    currentRun: QueueRun | null;
+    stage: string | null;
+    activeChange: {
+        name: string;
+        path: string;
+        status: FeatureState['status'];
+    } | null;
+    queuedChanges: QueuedChangeSummary[];
+    logTail: string[];
+    nextInstruction: string | null;
 }
 export type WorkflowStep = 'proposal_complete' | 'tasks_complete' | 'implementation_complete' | 'skill_updated' | 'index_regenerated' | 'tests_passed' | 'verification_passed' | 'archived';
 //# sourceMappingURL=types.d.ts.map

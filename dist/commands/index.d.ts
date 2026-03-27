@@ -8,6 +8,8 @@ export { VerifyCommand } from './VerifyCommand';
 export { ProgressCommand } from './ProgressCommand';
 export { ArchiveCommand } from './ArchiveCommand';
 export { FinalizeCommand } from './FinalizeCommand';
+export { QueueCommand } from './QueueCommand';
+export { RunCommand } from './RunCommand';
 export { StatusCommand } from './StatusCommand';
 export { BatchCommand } from './BatchCommand';
 export { WorkflowCommand } from './WorkflowCommand';

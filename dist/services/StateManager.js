@@ -70,14 +70,16 @@ class StateManager {
         state.current_step = targetStatus;
         await this.writeState(featurePath, state);
     }
-    createInitialState(feature, affects, mode = 'standard', workflowProfileId) {
+    createInitialState(feature, affects, mode = 'standard', workflowProfileId, options = {}) {
+        const now = new Date().toISOString();
+        const queued = options.queued === true;
         return {
             version: '1.0',
             feature,
             mode,
             workflow_profile_id: workflowProfileId,
-            status: 'draft',
-            current_step: 'write_proposal',
+            status: queued ? 'queued' : 'draft',
+            current_step: queued ? 'queued' : 'write_proposal',
             affects,
             completed: [],
             pending: [
@@ -90,8 +92,11 @@ class StateManager {
                 'verification_passed',
                 'archived',
             ],
-            blocked_by: ['missing_proposal'],
-            last_updated: new Date().toISOString(),
+            blocked_by: queued ? ['awaiting_activation'] : ['missing_proposal'],
+            queued_at: queued ? now : undefined,
+            activated_at: queued ? null : now,
+            source: options.source ?? (queued ? 'queue' : 'manual'),
+            last_updated: now,
         };
     }
 }

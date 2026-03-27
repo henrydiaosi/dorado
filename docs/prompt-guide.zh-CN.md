@@ -2,113 +2,122 @@
 
 [English](prompt-guide.md) | [简体中文](prompt-guide.zh-CN.md)
 
-## 原则
+## 默认原则
 
-给 Dorado 的提示词应该表达简短意图，而不是重复一长串内部检查清单。
+给 Dorado 写简短自然语言意图。
 
-如果 Dorado CLI 和 Dorado skills 安装正确，协议壳检查、初始化默认行为、change 规则、工作模式规则以及收口顺序都应该由系统自动执行。
+不要把 Dorado 当成一个每次都需要你重复长清单的系统。只要 CLI 和 skills 安装正确，Dorado 默认就应该知道协议壳规则、收口顺序、队列边界和 skill 守卫。
 
-## 推荐提示词风格
+## 最稳定的默认写法
 
-直接表达意图即可，例如：
+最推荐的提示词形态是：
 
 ```text
-Use Dorado to initialize this project.
-Use Dorado to inspect the current repository state and tell me what is missing.
-Use Dorado to backfill the project knowledge layer.
-Use Dorado to create and advance a change for this requirement.
-Use Dorado to verify the current active change.
-Use Dorado to finalize the completed change before commit.
-Use Dorado to show the current workflow mode for this repository.
-Use Dorado to switch this repository to full mode.
+Use $dorado to <goal>.
 ```
 
-## Skill 优先提示词风格
+如果你希望动作边界更窄，则写：
 
-当你的 AI 客户端支持 Dorado skills 时，优先直接使用 skill 名称：
+```text
+Use $dorado-change to <goal>.
+Use $dorado-finalize to <goal>.
+Use $dorado-workflow to <goal>.
+```
+
+## 推荐的基础提示词
 
 ```text
 Use $dorado to initialize this project.
-Use $dorado to inspect this repository.
-Use $dorado to backfill the project knowledge layer.
+Use $dorado to inspect this repository and tell me what is missing.
+Use $dorado to backfill the project knowledge layer from the existing design docs.
 Use $dorado-change to create and advance a change for this requirement.
-Use $dorado-workflow to inspect the current workflow mode.
-Use $dorado-workflow to switch this repository to standard mode.
-Use $dorado-finalize to close the completed change before commit.
+Use $dorado-verify to verify the current active change.
+Use $dorado-finalize to finalize the completed change before commit.
 ```
 
-## 好的提示词模式
-
-- 说清目标，而不是内部清单
-- 目标不明确时点明仓库或 change
-- 说清当前是 inspection、creation、verification、closeout 还是 workflow mode 操作
-- 在不同项目类型之间保持稳定表达
-
-## 示例
-
-### 初始化仓库
+## 推荐的中文提示词
 
 ```text
-Use Dorado to initialize this project.
+使用 $dorado 初始化这个项目。
+使用 $dorado 检查这个仓库，并告诉我当前还缺什么。
+使用 $dorado 读取现有设计文档并补齐项目知识层。
+使用 $dorado-change 为这个需求创建并推进一个 change。
+使用 $dorado-verify 验证当前 active change。
+使用 $dorado-finalize 在提交前收口这个已完成的 change。
 ```
 
-### 检查已有仓库
+## 队列提示词模式
+
+### 只建队列，不开始执行
 
 ```text
-Use Dorado to inspect this repository and summarize the current Dorado state.
+Use $dorado to read this TODO plan, split it into multiple changes, create a queue, and show the queue state before execution.
 ```
-
-### 启动一个需求
 
 ```text
-Use Dorado to create and advance a change for this requirement:
-Add a versioned public REST API for project exports.
+使用 $dorado 读取这份 TODO 计划，把它拆成多个 change，建立队列，并先展示队列状态，不要马上执行。
 ```
 
-### 设计文档优先启动流程
+### 由当前聊天窗口执行
 
 ```text
-Use Dorado to initialize this project, read the existing design documents, backfill the project knowledge layer, derive the execution TODO, and then create the first change to execute it.
+Use $dorado to read this TODO plan, create a change queue, and execute it in this current session. Use manual-bridge tracking and do not dispatch an extra local executor.
 ```
-
-如果仓库方向在初始化前就已经有文档，这是一种完全正确的 Dorado 使用方式。
-
-### 查看或切换工作模式
 
 ```text
-Use Dorado to show the current workflow mode and switch to full mode only if it is safe.
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并由当前聊天窗口按队列执行。使用 manual-bridge 跟踪，不要额外派发本地执行器。
 ```
 
-### 归档后继续追加工作
+### 让 Dorado 调用本地 Codex
 
 ```text
-Use Dorado to create a follow-up change for the archived export API work.
+Use $dorado to read this TODO plan, create a change queue, and run it with the codex executor and archive-chain profile.
 ```
-
-### 完成后的收口
 
 ```text
-Use Dorado to finalize this completed change before commit.
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并使用 codex 执行器加 archive-chain profile 运行。
 ```
 
-## 通常不需要重复说明的内容
+### 让 Dorado 调用本地 Claude Code
 
-- “检查目录是否已初始化”
-- “不要创建 web 模板”
-- “初始化时不要创建首个 change”
-- “初始化后验证协议壳”
-- “提交前先归档”
-- “存在 active changes 时阻止模式切换”
+```text
+Use $dorado to read this TODO plan, create a change queue, and run it with the claude-code executor and archive-chain profile.
+```
 
-这些都应当是 Dorado 的默认规则，不需要每次提示都重复。
+```text
+使用 $dorado 读取这份 TODO 计划，建立 change 队列，并使用 claude-code 执行器加 archive-chain profile 运行。
+```
 
-## 什么时候要写得更具体
+## 一般不需要重复强调的内容
 
-以下情况建议写得更具体：
+- init 时不要创建 Web 模板
+- plain init 时不要自动创建第一个 change
+- 提交前先 archive
+- 队列跑空后自动停止
+- 没有 active change 时 hooks 保持安静
 
-- 你想指定 change 名称
-- 你只要 inspection，不要写入
-- 你要创建 follow-up change，而不是碰归档历史
-- 你想指定某一个 skill 入口，而不是通用 `$dorado`
-- 你想让 Dorado 从现有设计文档推导知识层和执行 TODO
-- 你想明确指定 `lite`、`standard`、`full` 中的某个仓库模式
+## 什么时候要补更多细节
+
+以下场景建议写得更具体：
+
+- 你只想建队列，不想马上执行
+- 你希望由当前聊天窗口自己执行
+- 你希望 Dorado 显式调用 `codex` 或 `claude-code`
+- 你想显式指定 `manual-safe` 或 `archive-chain`
+- 你想切换到 `lite`、`standard`、`full` 某种治理模式
+
+## 实用建议
+
+如果你不确定怎么写，先用这句：
+
+```text
+Use $dorado to inspect this repository and tell me the correct next step.
+```
+
+或者直接用中文：
+
+```text
+使用 $dorado 检查这个仓库，并告诉我下一步应该做什么。
+```
+
+通常这已经足够让流程不跑偏，而不需要你过度描述内部细节。

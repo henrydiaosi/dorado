@@ -7,16 +7,16 @@
 - Node.js `>= 18`
 - npm `>= 8`
 
-## Install From The Release Repository
+## Install From This Release Repository
 
-Run inside the Dorado release repository root:
+Run in the root of the Dorado release repository:
 
 ```bash
 npm install
 npm install -g .
 ```
 
-This release repository already contains the publishable CLI assets. Install from the full repository root instead of manually copying `dist/` or a few individual files.
+This repository already contains the publishable CLI assets. Install from the full release tree instead of copying only `dist/` or a few individual files.
 
 ## Verify The Install
 
@@ -26,7 +26,7 @@ dorado --help
 dorado doctor
 ```
 
-If you want to verify the release repository itself:
+If you want to validate the release repository itself:
 
 ```bash
 npm run doctor
@@ -34,19 +34,25 @@ npm run doctor
 
 ## Upgrade
 
-Use a full repository sync, then reinstall:
+The supported upgrade path is:
 
-```bash
-npm install
-npm install -g .
-dorado doctor
-```
+1. sync the latest full release repository
+2. run `npm install`
+3. run `npm install -g .`
+4. run `dorado doctor`
 
-If you also use Dorado skills, resync them after the CLI upgrade:
+If you also use skills, resync them after the CLI upgrade:
 
 ```bash
 dorado skill install
 dorado skill install-claude
+```
+
+Then verify:
+
+```bash
+dorado skill status
+dorado skill status-claude
 ```
 
 ## Optional Release Smoke Check
@@ -57,6 +63,6 @@ npm run release:smoke
 
 ## Upgrade Rules
 
-- Do not overlay selected release files onto an older directory.
-- Do not copy only `dist/cli.js`, `dist/`, or individual scripts and call that an upgrade.
-- The supported path is: sync the full release repository, reinstall globally, then run `dorado doctor`.
+- do not overlay a few files onto an older release directory
+- do not copy only `dist/cli.js` and call that an upgrade
+- always upgrade from a complete synced release repository

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WORKFLOW_STEPS = exports.DATETIME_FORMAT = exports.DATE_FORMAT = exports.NAMING_RULES = exports.DIR_NAMES = exports.FILE_NAMES = exports.CORE_REQUIRED_STEPS = exports.STATE_TRANSITIONS = void 0;
 exports.STATE_TRANSITIONS = {
+    queued: ['draft'],
     draft: ['proposed'],
     proposed: ['planned', 'draft'],
     planned: ['implementing', 'proposed'],
@@ -42,7 +43,12 @@ exports.FILE_NAMES = {
 exports.DIR_NAMES = {
     CHANGES: 'changes',
     ACTIVE: 'active',
+    QUEUED: 'queued',
     ARCHIVED: 'archived',
+    RUNS: 'runs',
+    HISTORY: 'history',
+    LOGS: 'logs',
+    JOBS: 'jobs',
     FOR_AI: 'for-ai',
     DOCS: 'docs',
     PROJECT: 'project',

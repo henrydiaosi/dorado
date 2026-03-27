@@ -2,45 +2,59 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Dorado is a protocol-shell-first CLI for AI-assisted project workflows.
+Dorado is a protocol-shell-first workflow system for AI-assisted project work.
 
-It initializes the collaboration protocol first, keeps the repository minimal at the start, and lets project-specific structure grow later through explicit docs, skills, and changes.
+Most users should use Dorado through skills and natural-language prompts. The CLI is still the execution engine, but it is usually the layer underneath the skills rather than the thing you type all day.
 
 Current release:
 
-- CLI: `0.5.2`
-- Skills protocol: `5.0.1`
+- CLI: `0.10.1`
+- Skills protocol: `5.0.2`
 
-Documentation:
+Start here:
 
 - [Project Overview](docs/project-overview.md)
-- [Installation](docs/installation.md)
-- [Usage](docs/usage.md)
 - [Prompt Guide](docs/prompt-guide.md)
-- [Skills Installation](docs/skills-installation.md)
 - [Skills Usage](docs/skills-usage.md)
+- [Skills Installation](docs/skills-installation.md)
+- [Usage](docs/usage.md)
 - [Workflow Modes](docs/workflow-modes.md)
+- [Installation](docs/installation.md)
 
-Workflow modes at a glance:
+## Skills-First Default
 
-- `lite`: lighter governance for smaller repositories
-- `standard`: balanced default for most teams
-- `full`: stricter governance for larger or riskier work
+If Codex or Claude Code already has Dorado skills installed, start with short prompts like these:
 
-Important:
+```text
+Use $dorado to initialize this project.
+Use $dorado to inspect this repository and tell me what is missing.
+Use $dorado to backfill the project knowledge layer from the existing design docs.
+Use $dorado-change to create and advance a change for this requirement.
+Use $dorado-finalize to finalize the completed change before commit.
+```
 
-- `standard` is the recommended default
-- `full` is not a different product tier or a "more complete" Dorado
-- repository mode sets governance range; each change still resolves its own profile, flags, and activated optional steps
-- Dorado now exposes public mode switching through `dorado workflow set-mode`
+For queue work:
 
-What this release covers:
+```text
+Use $dorado to read this TODO plan, split it into multiple changes, create a queue, and show the queue state before execution.
+Use $dorado to read this TODO plan, create a change queue, and execute it in this current session with manual-bridge tracking.
+Use $dorado to read this TODO plan, create a change queue, and run it with the codex executor and archive-chain profile.
+Use $dorado to read this TODO plan, create a change queue, and run it with the claude-code executor and archive-chain profile.
+```
 
-- protocol-shell-first project initialization
-- explicit project-knowledge backfill
-- configurable change workflows
-- change-status inspection and Git hook enforcement
-- standard change closeout with `finalize -> archive -> commit-ready`
-- public repository mode inspection and switching
+## What This Release Covers
+
+- protocol-shell-only init
+- explicit project knowledge backfill
+- change workflow with verify, finalize, and archive
+- sequential change queues
+- `manual-bridge`, `codex`, and `claude-code` executor modes
+- queue auto-stop after the last change is done
 - Codex and Claude Code skill installation and sync
-- release self-check with `dorado doctor` and `npm run doctor`
+- inspection-first dashboard
+
+## What Users Should Remember
+
+- say what you want in natural language
+- prefer `$dorado` and the narrower Dorado skills
+- use CLI commands only when you want exact manual control or scripting

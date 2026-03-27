@@ -447,8 +447,10 @@ class ProjectService {
     }
     async getExecutionStatus(rootDir) {
         const report = await this.getActiveChangeStatusReport(rootDir);
+        const queuedChanges = await this.getQueuedChanges(rootDir);
         return {
             totalActiveChanges: report.totalActiveChanges,
+            totalQueuedChanges: queuedChanges.length,
             byStatus: report.changes.reduce((result, change) => {
                 result[change.status] = (result[change.status] ?? 0) + 1;
                 return result;
@@ -462,6 +464,7 @@ class ProjectService {
                 activatedSteps: change.activatedSteps,
                 description: change.description,
             })),
+            queuedChanges,
         };
     }
     async getActiveChangeStatusReport(rootDir) {
@@ -510,6 +513,186 @@ class ProjectService {
             throw new Error('Change state file not found.');
         }
         return item;
+    }
+    async checkArchiveReadiness(featurePath) {
+        const resolvedFeaturePath = path_1.default.resolve(featurePath);
+        const { targetPath, projectRoot, statePath, proposalPath, tasksPath, verificationPath } = this.resolveActiveChangePaths(resolvedFeaturePath);
+        if (!(await this.fileService.exists(statePath))) {
+            throw new Error('Change state file not found.');
+        }
+        const featureState = await this.fileService.readJSON(statePath);
+        const config = await this.configManager.loadConfig(projectRoot);
+        const workflow = new workflow_1.ConfigurableWorkflow(config.mode);
+        const proposal = (0, gray_matter_1.default)(await this.fileService.readFile(proposalPath));
+        const tasks = (0, gray_matter_1.default)(await this.fileService.readFile(tasksPath));
+        const verification = (0, gray_matter_1.default)(await this.fileService.readFile(verificationPath));
+        const flags = Array.isArray(proposal.data.flags) ? proposal.data.flags : [];
+        const activatedSteps = workflow.getActivatedSteps(flags);
+        const tasksOptionalSteps = Array.isArray(tasks.data.optional_steps)
+            ? tasks.data.optional_steps
+            : [];
+        const verificationOptionalSteps = Array.isArray(verification.data.optional_steps)
+            ? verification.data.optional_steps
+            : [];
+        const passedOptionalSteps = Array.isArray(verification.data.passed_optional_steps)
+            ? verification.data.passed_optional_steps
+            : [];
+        const optionalStepDocuments = await Promise.all((0, workflow_1.getOptionalStepProtocolAssets)(activatedSteps).map(async (asset) => {
+            const assetPath = path_1.default.join(targetPath, asset.fileName);
+            const exists = await this.fileService.exists(assetPath);
+            const content = exists ? await this.fileService.readFile(assetPath) : '';
+            return {
+                step: asset.step,
+                fileName: asset.fileName,
+                exists,
+                checklistComplete: exists ? !/- \[ \]/.test(content) : false,
+            };
+        }));
+        const archiveConfig = config.workflow?.archive_gate || {
+            require_verification: true,
+            require_skill_update: true,
+            require_index_regenerated: true,
+            require_optional_steps_passed: true,
+        };
+        const result = await ArchiveGate_1.archiveGate.checkArchiveReadiness(featureState, archiveConfig, {
+            activatedSteps,
+            tasksOptionalSteps,
+            verificationOptionalSteps,
+            passedOptionalSteps,
+            tasksComplete: !/- \[ \]/.test(tasks.content),
+            verificationComplete: !/- \[ \]/.test(verification.content),
+            optionalStepDocuments,
+        });
+        return {
+            featureState,
+            result,
+        };
+    }
+    async archiveChange(featurePath) {
+        const resolvedFeaturePath = path_1.default.resolve(featurePath);
+        const { targetPath, projectRoot } = this.resolveActiveChangePaths(resolvedFeaturePath);
+        const { featureState, result } = await this.checkArchiveReadiness(targetPath);
+        if (!result.canArchive) {
+            throw new Error('Change cannot be archived. Please resolve blockers.');
+        }
+        return this.performArchive(targetPath, projectRoot, featureState);
+    }
+    async finalizeChange(featurePath) {
+        const resolvedFeaturePath = path_1.default.resolve(featurePath);
+        const targetPath = path_1.default.resolve(resolvedFeaturePath);
+        const projectRoot = path_1.default.resolve(targetPath, '..', '..', '..');
+        const preflight = await this.getActiveChangeStatusItem(targetPath);
+        const blockingChecks = preflight.checks.filter(check => check.status !== 'pass' && check.name !== 'archive.pending');
+        if (blockingChecks.length > 0) {
+            throw new Error('Finalize blocked by incomplete change protocol.');
+        }
+        await this.rebuildIndex(projectRoot);
+        const state = await this.stateManager.readState(targetPath);
+        this.assertFinalizeStateConsistency(state);
+        await this.stateManager.writeState(targetPath, this.reconcileStateForFinalize(state));
+        return {
+            archivePath: await this.archiveChange(targetPath),
+            preflight,
+        };
+    }
+    async listActiveChangeNames(rootDir) {
+        const activeDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE);
+        if (!(await this.fileService.exists(activeDir))) {
+            return [];
+        }
+        const entries = await fs_extra_1.default.readdir(activeDir, { withFileTypes: true });
+        return entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+            .sort((left, right) => left.localeCompare(right));
+    }
+    async hasActiveChanges(rootDir) {
+        return (await this.listActiveChangeNames(rootDir)).length > 0;
+    }
+    async listQueuedChangeNames(rootDir) {
+        const queuedDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED);
+        if (!(await this.fileService.exists(queuedDir))) {
+            return [];
+        }
+        const entries = await fs_extra_1.default.readdir(queuedDir, { withFileTypes: true });
+        return entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+            .sort((left, right) => left.localeCompare(right));
+    }
+    async getQueuedChanges(rootDir) {
+        const queuedDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED);
+        if (!(await this.fileService.exists(queuedDir))) {
+            return [];
+        }
+        const changeNames = await this.listQueuedChangeNames(rootDir);
+        const items = await Promise.all(changeNames.map(async (changeName) => {
+            const featureDir = path_1.default.join(queuedDir, changeName);
+            const statePath = path_1.default.join(featureDir, constants_1.FILE_NAMES.STATE);
+            const state = (await this.fileService.exists(statePath))
+                ? await this.fileService.readJSON(statePath)
+                : null;
+            return {
+                name: changeName,
+                path: this.toRelativePath(rootDir, featureDir),
+                status: state?.status ?? 'queued',
+                currentStep: state?.current_step ?? 'queued',
+                queuedAt: state?.queued_at ?? null,
+                activatedAt: state?.activated_at ?? null,
+                source: state?.source ?? null,
+            };
+        }));
+        return items.sort((left, right) => {
+            const leftTime = left.queuedAt ?? '';
+            const rightTime = right.queuedAt ?? '';
+            if (leftTime !== rightTime) {
+                return leftTime.localeCompare(rightTime);
+            }
+            return left.name.localeCompare(right.name);
+        });
+    }
+    async activateQueuedChange(rootDir, changeName, source = 'queue') {
+        if (await this.hasActiveChanges(rootDir)) {
+            throw new Error('Cannot activate a queued change while another active change exists.');
+        }
+        const queuedPath = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED, changeName);
+        const activePath = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE, changeName);
+        if (!(await this.fileService.exists(queuedPath))) {
+            throw new Error(`Queued change not found: ${changeName}`);
+        }
+        if (await this.fileService.exists(activePath)) {
+            throw new Error(`Active change already exists: ${changeName}`);
+        }
+        await this.fileService.ensureDir(path_1.default.dirname(activePath));
+        await this.fileService.move(queuedPath, activePath);
+        const state = await this.stateManager.readState(activePath);
+        state.status = 'draft';
+        state.current_step = 'write_proposal';
+        state.blocked_by = ['missing_proposal'];
+        state.activated_at = new Date().toISOString();
+        state.source = source;
+        await this.stateManager.writeState(activePath, state);
+        await this.updateProposalStatus(activePath, 'active');
+        return activePath;
+    }
+    async activateNextQueuedChange(rootDir, source = 'queue') {
+        const queuedChanges = await this.getQueuedChanges(rootDir);
+        const nextChange = queuedChanges[0];
+        if (!nextChange) {
+            return null;
+        }
+        await this.activateQueuedChange(rootDir, nextChange.name, source);
+        const activePath = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE, nextChange.name);
+        const state = await this.stateManager.readState(activePath);
+        return {
+            name: state.feature,
+            path: this.toRelativePath(rootDir, activePath),
+            status: state.status,
+            currentStep: state.current_step,
+            queuedAt: state.queued_at ?? null,
+            activatedAt: state.activated_at ?? null,
+            source: state.source ?? null,
+        };
     }
     async getFeatureProjectContext(rootDir, affects = []) {
         const affectSlugs = affects
@@ -755,6 +938,7 @@ class ProjectService {
     getDirectorySkeleton(rootDir) {
         return [
             path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED),
             path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ARCHIVED),
             path_1.default.join(rootDir, '.dorado'),
             path_1.default.join(rootDir, constants_1.DIR_NAMES.DOCS, constants_1.DIR_NAMES.PROJECT),
@@ -770,6 +954,7 @@ class ProjectService {
     getProtocolShellDirectorySkeleton(rootDir) {
         return [
             path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE),
+            path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED),
             path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ARCHIVED),
             path_1.default.join(rootDir, '.dorado'),
             path_1.default.join(rootDir, constants_1.DIR_NAMES.FOR_AI),
@@ -794,6 +979,12 @@ class ProjectService {
                 key: `${constants_1.DIR_NAMES.CHANGES}/${constants_1.DIR_NAMES.ACTIVE}`,
                 pathSegments: [constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE],
                 required: true,
+                category: 'core',
+            },
+            {
+                key: `${constants_1.DIR_NAMES.CHANGES}/${constants_1.DIR_NAMES.QUEUED}`,
+                pathSegments: [constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.QUEUED],
+                required: false,
                 category: 'core',
             },
             {
@@ -1030,17 +1221,6 @@ class ProjectService {
         await this.fileService.writeFile(rootSkillPath, this.renderProtocolShellRootSkill(projectName, documentLanguage, mode));
         return true;
     }
-    async listActiveChangeNames(rootDir) {
-        const activeDir = path_1.default.join(rootDir, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE);
-        if (!(await this.fileService.exists(activeDir))) {
-            return [];
-        }
-        const entries = await fs_extra_1.default.readdir(activeDir, { withFileTypes: true });
-        return entries
-            .filter(entry => entry.isDirectory())
-            .map(entry => entry.name)
-            .sort((left, right) => left.localeCompare(right));
-    }
     async updateActiveChangeModes(rootDir, changeNames, nextMode) {
         const updated = [];
         for (const changeName of changeNames) {
@@ -1137,7 +1317,8 @@ class ProjectService {
 
 - This repository currently contains only the Dorado protocol shell.
 - Project docs, source structure, tests, and business scaffold should be generated later through explicit skills or commands.
-- Active changes live under \`changes/active/<change>\`.`
+- Active changes live under \`changes/active/<change>\`.
+- Queued changes live under \`changes/queued/<change>\` until they are activated.`
             : `# ${projectName}
 
 > 层级：协议壳
@@ -1385,6 +1566,11 @@ ${formatSuggestion()}
             status: 'pass',
             message: `Status is ${state.status}, current step is ${state.current_step}`,
         });
+        checks.push(...this.analyzeStateProtocolAlignment(state, {
+            proposalExists,
+            tasksComplete: tasksAnalysis?.checklistComplete ?? false,
+            verificationComplete: verificationAnalysis?.checklistComplete ?? false,
+        }));
         const archiveResult = await ArchiveGate_1.archiveGate.checkArchiveReadiness(state, workflow.getArchiveGate(), {
             activatedSteps,
             tasksOptionalSteps: tasksAnalysis?.optionalSteps ?? [],
@@ -1484,6 +1670,45 @@ ${formatSuggestion()}
             ],
         };
     }
+    analyzeStateProtocolAlignment(state, protocol) {
+        const checks = [];
+        const hasProposalStep = state.completed.includes('proposal_complete');
+        const hasTasksStep = state.completed.includes('tasks_complete');
+        const hasImplementationStep = state.completed.includes('implementation_complete');
+        if (protocol.proposalExists && !hasProposalStep && state.status === 'draft') {
+            checks.push({
+                name: 'state.json.proposal_alignment',
+                status: 'warn',
+                message: 'proposal.md exists but state.json still looks like an untouched draft. Confirm whether proposal_complete should be recorded.',
+            });
+        }
+        if (protocol.tasksComplete && !hasTasksStep) {
+            checks.push({
+                name: 'state.json.tasks_alignment',
+                status: 'fail',
+                message: 'tasks.md checklist is complete but state.json does not include tasks_complete. Sync state.json before finalize or archive.',
+            });
+        }
+        if (protocol.verificationComplete) {
+            const coreStateReady = hasProposalStep && hasTasksStep && hasImplementationStep;
+            checks.push({
+                name: 'state.json.verification_alignment',
+                status: coreStateReady ? 'pass' : 'fail',
+                message: coreStateReady
+                    ? 'state.json core progression is aligned with verification.md completion'
+                    : 'verification.md is complete but state.json core progression is still behind. Sync state.json before finalize or archive.',
+            });
+        }
+        if (protocol.verificationComplete &&
+            (state.status === 'draft' || state.current_step === 'write_proposal')) {
+            checks.push({
+                name: 'state.json.lifecycle_alignment',
+                status: 'fail',
+                message: 'Downstream protocol docs are complete but state.json is still at the initial draft/write_proposal stage.',
+            });
+        }
+        return checks;
+    }
     async analyzeOptionalStepProtocolAssets(featureDir, activatedSteps) {
         const documents = [];
         const checks = [];
@@ -1520,6 +1745,93 @@ ${formatSuggestion()}
             documents,
             checks,
         };
+    }
+    resolveActiveChangePaths(featurePath) {
+        const targetPath = path_1.default.resolve(featurePath);
+        const projectRoot = path_1.default.resolve(targetPath, '..', '..', '..');
+        const expectedParent = path_1.default.join(projectRoot, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ACTIVE);
+        if (path_1.default.dirname(targetPath) !== expectedParent) {
+            throw new Error('Archive target must be a change directory under changes/active.');
+        }
+        return {
+            targetPath,
+            projectRoot,
+            statePath: path_1.default.join(targetPath, constants_1.FILE_NAMES.STATE),
+            proposalPath: path_1.default.join(targetPath, constants_1.FILE_NAMES.PROPOSAL),
+            tasksPath: path_1.default.join(targetPath, constants_1.FILE_NAMES.TASKS),
+            verificationPath: path_1.default.join(targetPath, constants_1.FILE_NAMES.VERIFICATION),
+        };
+    }
+    reconcileStateForFinalize(state) {
+        const completed = new Set(state.completed);
+        for (const step of [
+            'proposal_complete',
+            'tasks_complete',
+            'implementation_complete',
+            'skill_updated',
+            'index_regenerated',
+            'tests_passed',
+            'verification_passed',
+        ]) {
+            completed.add(step);
+        }
+        return {
+            ...state,
+            status: 'ready_to_archive',
+            current_step: 'ready_to_archive',
+            completed: Array.from(completed).sort((left, right) => left.localeCompare(right)),
+            pending: state.pending.filter(step => !completed.has(step) && step !== 'archived'),
+            blocked_by: [],
+        };
+    }
+    assertFinalizeStateConsistency(state) {
+        const requiredSteps = ['proposal_complete', 'tasks_complete', 'implementation_complete'];
+        const missingRequiredSteps = requiredSteps.filter(step => !state.completed.includes(step));
+        if (missingRequiredSteps.length > 0) {
+            throw new Error(`Finalize blocked because state.json is missing required completed steps: ${missingRequiredSteps.join(', ')}.`);
+        }
+        if (state.status === 'draft' || state.current_step === 'write_proposal') {
+            throw new Error('Finalize blocked because state.json still indicates the change is at the initial draft/proposal stage.');
+        }
+    }
+    async performArchive(targetPath, projectRoot, featureState) {
+        const archivedRoot = path_1.default.join(projectRoot, constants_1.DIR_NAMES.CHANGES, constants_1.DIR_NAMES.ARCHIVED);
+        await this.fileService.ensureDir(archivedRoot);
+        const archiveDirName = await this.resolveArchiveDirName(archivedRoot, featureState.feature);
+        const archivePath = path_1.default.join(archivedRoot, archiveDirName);
+        const nextState = {
+            ...featureState,
+            status: 'archived',
+            current_step: 'archived',
+            completed: Array.from(new Set([...featureState.completed, 'archived'])).sort((a, b) => a.localeCompare(b)),
+            pending: featureState.pending.filter(step => step !== 'archived'),
+            blocked_by: [],
+        };
+        await this.fileService.move(targetPath, archivePath);
+        await this.stateManager.writeState(archivePath, nextState);
+        await this.updateProposalStatus(archivePath, 'archived');
+        await this.rebuildIndex(projectRoot);
+        return this.toRelativePath(projectRoot, archivePath);
+    }
+    async resolveArchiveDirName(archivedRoot, featureName) {
+        const datePrefix = new Date().toISOString().slice(0, 10);
+        const baseName = `${datePrefix}-${featureName}`;
+        let candidate = baseName;
+        let index = 2;
+        while (await this.fileService.exists(path_1.default.join(archivedRoot, candidate))) {
+            candidate = `${baseName}-${index}`;
+            index += 1;
+        }
+        return candidate;
+    }
+    async updateProposalStatus(targetPath, status) {
+        const proposalPath = path_1.default.join(targetPath, constants_1.FILE_NAMES.PROPOSAL);
+        if (!(await this.fileService.exists(proposalPath))) {
+            return;
+        }
+        const proposal = (0, gray_matter_1.default)(await this.fileService.readFile(proposalPath));
+        proposal.data.status = status;
+        await this.fileService.writeFile(proposalPath, gray_matter_1.default.stringify(proposal.content, proposal.data));
     }
     maxUpdatedAt(values) {
         const timestamps = values.filter((value) => Boolean(value));

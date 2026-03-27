@@ -51,6 +51,15 @@ async function runHookCheck(rootDir, event) {
 
   const activeChanges = await listActiveChanges(rootDir);
   if (activeChanges.length === 0) {
+    const queuedChanges = await listQueuedChanges(rootDir);
+    if (queuedChanges.length > 0) {
+      console.log(
+        `[dorado] no active changes, but ${queuedChanges.length} queued change(s) are waiting`
+      );
+      console.log('[dorado] run "dorado queue status" or "dorado queue next" when you want to continue');
+      return 0;
+    }
+
     console.log('[dorado] no active changes, hook check skipped');
     return 0;
   }
@@ -434,6 +443,18 @@ async function listActiveChanges(rootDir) {
   }
 
   return (await fsp.readdir(activeDir, { withFileTypes: true }))
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+async function listQueuedChanges(rootDir) {
+  const queuedDir = path.join(rootDir, 'changes', 'queued');
+  if (!(await exists(queuedDir))) {
+    return [];
+  }
+
+  return (await fsp.readdir(queuedDir, { withFileTypes: true }))
     .filter(entry => entry.isDirectory())
     .map(entry => entry.name)
     .sort((left, right) => left.localeCompare(right));
