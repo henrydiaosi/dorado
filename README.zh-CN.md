@@ -72,6 +72,13 @@ Use $dorado to read this TODO plan, create a change queue, and run it with the c
 - Codex 与 Claude Code 的 skills 安装和同步
 - inspection-first 的 dashboard
 
+## 发布仓库使用规则
+
+- 这个仓库是预构建发布仓库
+- 使用 `npm install -g .` 安装
+- 使用 `npm start`、`npm run help` 或 `dorado --help` 运行
+- 不要再按源码仓库习惯执行 `npm run build` 或 `npm run test:run`
+
 ## 用户真正要记住的事
 
 - 用自然语言说明你想做什么

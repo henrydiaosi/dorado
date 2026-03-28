@@ -8,15 +8,11 @@
     "dorado": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-dashboard-assets.js",
-    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "help": "node dist/cli.js --help",
+    "version": "node dist/cli.js --version",
     "doctor": "node scripts/release-doctor.js",
-    "test": "vitest",
-    "test:run": "vitest --run",
-    "lint": "eslint src tests --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "index:rebuild": "node dist/tools/build-index.js",
-    "validate": "node dist/cli/commands/validate.js",
     "release:smoke": "node scripts/release-smoke.js"
   },
   "keywords": [
@@ -38,18 +34,8 @@
     "js-yaml": "^4.1.0",
     "open": "^9.1.0"
   },
-  "devDependencies": {
-    "@types/body-parser": "^1.19.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/fs-extra": "^11.0.4",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.19.37",
-    "@typescript-eslint/eslint-plugin": "^6.17.0",
-    "@typescript-eslint/parser": "^6.17.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.1.1",
-    "typescript": "^5.3.3",
-    "vitest": "^1.1.0"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

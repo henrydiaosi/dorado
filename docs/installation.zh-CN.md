@@ -18,6 +18,14 @@ npm install -g .
 
 这个仓库已经包含可发布的 CLI 产物。安装时应基于完整发布仓库执行，不要只复制 `dist/` 或零散脚本文件。
 
+这是一份预构建发布仓库，不是开发源码仓库。这意味着：
+
+- 支持 `npm start`
+- 支持 `npm run help`
+- 支持 `npm run doctor`
+- `npm run build` 不是受支持的发布仓库动作
+- `npm run test:run` 不是受支持的发布仓库动作
+
 ## 安装后验证
 
 ```bash
@@ -30,6 +38,7 @@ dorado doctor
 
 ```bash
 npm run doctor
+npm start -- --version
 ```
 
 ## 升级方式

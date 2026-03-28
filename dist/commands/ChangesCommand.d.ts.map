@@ -1,0 +1,1 @@
+{"version":3,"file":"ChangesCommand.d.ts","sourceRoot":"","sources":["../../src/commands/ChangesCommand.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,WAAW,EAAE,MAAM,eAAe,CAAC;AAE5C,qBAAa,cAAe,SAAQ,WAAW;IACvC,OAAO,CAAC,MAAM,SAAW,EAAE,WAAW,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;CAkEtE"}

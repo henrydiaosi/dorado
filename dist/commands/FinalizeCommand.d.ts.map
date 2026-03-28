@@ -1,0 +1,1 @@
+{"version":3,"file":"FinalizeCommand.d.ts","sourceRoot":"","sources":["../../src/commands/FinalizeCommand.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,WAAW,EAAE,MAAM,eAAe,CAAC;AAE5C,UAAU,sBAAsB;IAC9B,YAAY,CAAC,EAAE,OAAO,CAAC;CACxB;AAED,qBAAa,eAAgB,SAAQ,WAAW;IACxC,OAAO,CAAC,WAAW,CAAC,EAAE,MAAM,EAAE,OAAO,GAAE,sBAA2B,GAAG,OAAO,CAAC,IAAI,CAAC;IAgCxF,OAAO,CAAC,cAAc;CAgBvB"}

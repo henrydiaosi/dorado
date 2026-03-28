@@ -53,6 +53,13 @@ Use $dorado to read this TODO plan, create a change queue, and run it with the c
 - Codex and Claude Code skill installation and sync
 - inspection-first dashboard
 
+## Release Repository Behavior
+
+- this repository is prebuilt
+- install it with `npm install -g .`
+- run it with `npm start`, `npm run help`, or `dorado --help`
+- do not expect source-repo scripts such as `npm run build` or `npm run test:run`
+
 ## What Users Should Remember
 
 - say what you want in natural language

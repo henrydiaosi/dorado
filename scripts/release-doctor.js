@@ -20,12 +20,21 @@ function parseYamlScalar(content, key) {
 
 async function runDoctor() {
   const checks = [];
+  const allowedReleaseScripts = new Set([
+    'start',
+    'help',
+    'version',
+    'doctor',
+    'index:rebuild',
+    'release:smoke',
+  ]);
 
   const pass = message => checks.push({ level: 'PASS', message });
   const fail = message => checks.push({ level: 'FAIL', message });
 
   const packageJsonPath = path.join(packageRoot, 'package.json');
   const packageLockPath = path.join(packageRoot, 'package-lock.json');
+  const gitignorePath = path.join(packageRoot, '.gitignore');
   const buildIndexPath = path.join(packageRoot, 'build-index-auto.js');
   const rootSkillPath = path.join(packageRoot, 'SKILL.md');
   const skillYamlPath = path.join(packageRoot, 'skill.yaml');
@@ -123,6 +132,17 @@ async function runDoctor() {
     }
   }
 
+  if (await fs.pathExists(gitignorePath)) {
+    const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+    if (/^dist\/\s*$/m.test(gitignoreContent)) {
+      fail('.gitignore must not ignore dist/ in the release repository');
+    } else {
+      pass('.gitignore does not ignore dist/');
+    }
+  } else {
+    fail('.gitignore is missing');
+  }
+
   if (packageJson) {
     const packageRequire = createRequire(packageJsonPath);
     const dependencyNames = Object.keys(packageJson.dependencies || {});
@@ -145,6 +165,14 @@ async function runDoctor() {
       pass('package.json bin.dorado points to dist/cli.js');
     } else {
       fail(`package.json bin.dorado mismatch: ${packageJson.bin?.dorado ?? 'missing'}`);
+    }
+
+    const scriptNames = Object.keys(packageJson.scripts || {});
+    const unsupportedScripts = scriptNames.filter(name => !allowedReleaseScripts.has(name));
+    if (unsupportedScripts.length > 0) {
+      fail(`package.json contains non-release scripts: ${unsupportedScripts.join(', ')}`);
+    } else {
+      pass(`package.json scripts are release-safe (${scriptNames.join(', ') || 'none'})`);
     }
   }
 
