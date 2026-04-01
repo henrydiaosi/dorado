@@ -1,0 +1,41 @@
+export declare const STATE_TRANSITIONS: Record<string, string[]>;
+export declare const CORE_REQUIRED_STEPS: string[];
+export declare const FILE_NAMES: {
+    SKILLRC: string;
+    SKILL_MD: string;
+    SKILL_INDEX: string;
+    README: string;
+    BUILD_INDEX_SCRIPT: string;
+    AI_GUIDE: string;
+    EXECUTION_PROTOCOL: string;
+    PROPOSAL: string;
+    TASKS: string;
+    VERIFICATION: string;
+    STATE: string;
+    REVIEW: string;
+    INDEX: string;
+};
+export declare const DIR_NAMES: {
+    CHANGES: string;
+    ACTIVE: string;
+    ARCHIVED: string;
+    FOR_AI: string;
+    DOCS: string;
+    PROJECT: string;
+    DESIGN: string;
+    PLANNING: string;
+    API: string;
+    SRC: string;
+    MODULES: string;
+    CORE: string;
+    TESTS: string;
+    DIST: string;
+};
+export declare const NAMING_RULES: {
+    FEATURE_NAME: RegExp;
+    ARCHIVED_DIR: RegExp;
+};
+export declare const DATE_FORMAT = "YYYY-MM-DD";
+export declare const DATETIME_FORMAT = "YYYY-MM-DDTHH:mm:ssZ";
+export declare const WORKFLOW_STEPS: readonly ["proposal_complete", "tasks_complete", "implementation_complete", "skill_updated", "index_regenerated", "tests_passed", "verification_passed", "archived"];
+//# sourceMappingURL=constants.d.ts.map
