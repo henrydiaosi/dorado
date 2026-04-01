@@ -1,6 +1,0 @@
-"use strict";
-/**
- * 路径处理
- * TODO: 实现路径处理函数
- */
-//# sourceMappingURL=path.js.map
